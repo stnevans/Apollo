@@ -6,14 +6,17 @@
 
 namespace Search{
 	struct Config{
-		int depth; // in ply
-		
+		int depth=0; // in ply
+		int wtime=0;
+		int btime=0;
+		int winc=0;
+		int binc=0;
 	};
 	typedef struct Config Config;
 	Move getBestMove(Board * board);
 	Move getMinimaxMove(Board * board);
 	Move getAlphabetaMove(Board * board);
-	Config * getConfig();
+	void setConfig(Config * config);
 	
 }
 #endif

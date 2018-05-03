@@ -6,6 +6,7 @@
 namespace Eval{
 	int evaluate(Board * b);
 	int naiveEvaluate(Board *b);
+	int basicEvaluate(Board *b);
 }
 
 #endif

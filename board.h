@@ -54,7 +54,7 @@ class Board{
 		bool isDraw();
 		bool isOwnKingInCheck();
 		bool legal();
-		bool Board::isCheckmate();
+		bool isCheckmate();
 		std::string getFen();
 		Board& readFromFen(std::string& fen, BoardInfo* board);
 		

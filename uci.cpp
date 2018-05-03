@@ -136,16 +136,23 @@ void setOption(istringstream *parser){
 void UCI::go(Board * board, istringstream *parser){
 		char buffer[100];
 	string token;
-	Search::Config* cfg = Search::getConfig();
+	Search::Config cfg;
 	while((*parser) >> token){
 		if(token == "depth"){
-			(*parser) >> cfg->depth;
+			(*parser) >> cfg.depth;
+		}else if(token =="wtime"){
+			(*parser) >> cfg.wtime;
+		}else if(token=="btime"){
+			(*parser) >> cfg.btime;
+		}else if(token == "winc"){
+				(*parser) >> cfg.winc;
+		}else if(token == "binc"){
+			(*parser) >> cfg.binc;
 		}
 	}
+	Search::setConfig(&cfg);
 	Move bestMove = Search::getBestMove(board);
 	printf("bestmove %s\n", getMoveString(bestMove,buffer));
-	//Move otherMove = Search::getMinimaxMove(board);
-	//printf("bestmove %s\n", getMoveString(otherMove,buffer));
 }
 int UCI::perft(Board* b, int depth) {
 	if (depth == 0){

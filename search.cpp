@@ -5,9 +5,10 @@
 #include <limits.h>
 #include "board.h"
 #include "movegen.h"
-Search::Config cfg;
-Search::Config * Search::getConfig(){
-	return &cfg;
+Search::Config* cfg;
+#include "uci.h"//Temp, for move string`
+void Search::setConfig(Search::Config * config){
+	cfg=config;
 }
 //TODO struct line{move,eval}
 int minimaxHelper(Board * b, int depth){
@@ -32,7 +33,7 @@ Move Search::getMinimaxMove(Board* board){
 	Move bestMove;
 	for(int i = 0; i < moveCount; i++){
 		board->makeMove(moves[i]);
-		int val = -minimaxHelper(board,cfg.depth-1);
+		int val = -minimaxHelper(board,cfg->depth-1);
 		board->undoMove();
 		if(val > max){
 			max = val;
@@ -64,9 +65,12 @@ Move Search::getAlphabetaMove(Board * board){
 	U8 moveCount = getAllLegalMoves(board,moves);
 	int max = INT_MIN;
 	Move bestMove;
+	char buffer[100] ={};
 	for(int i = 0; i < moveCount; i++){
 		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,cfg.depth-1);
+		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,cfg->depth-1);
+				//printf("Checking Move: %s %i\n", UCI::getMoveString(moves[i],buffer), val); 
+
 		board->undoMove();
 		if(val > max){
 			max = val;
