@@ -7,6 +7,12 @@
 #include "movegen.h"
 #include "bitboard.h"
 #include "uci.h" //For timing
+
+#ifdef __linux__
+#include <stdio.h>
+#include "string.h"
+#endif
+
 Search::Config* cfg;
 void Search::setConfig(Search::Config * config){
 	cfg=config;
@@ -31,7 +37,7 @@ bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, 
 	}
 	int curEval = Eval::evaluate(b);
 	int futilityValue = futilityMoves[depthToGo];
-	return curEval+futilityValue < alpha;
+	return curEval-futilityValue > beta;
 }
 /*
 * Implements futility pruning using futilityMoves[]. 
@@ -126,7 +132,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	//printf("alpha: %i beta: %i\n", alpha, beta);
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
 		//printf("Eval: %i A: %i B: %i\n", curEval,alpha,beta);
-		return alpha;	
+		return beta;	
 	}
 	Move moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
