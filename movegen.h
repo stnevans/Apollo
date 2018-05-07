@@ -33,4 +33,8 @@ Move* getMoveList();
 
 U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, Move list[]);
 U8 getAllLegalMoves(Board* boardInfo, Move list[]);
+
+namespace Movegen{
+	U8 getAllCaptures(BoardInfo * b, Move moves[]);
+}
 #endif

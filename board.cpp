@@ -15,7 +15,13 @@ BoardInfo boards[MAX_MOVECOUNT] = {};
 //Faster than memcpy?
 //Cache is attacked bitboard
 //If not, cache is attacked bits. Meaning we only check for a cache hit
-//finish isDraw
+//Eventually maybe test for check by only analyzing last move.
+//http://mediocrechess.blogspot.com/2007/01/guide-futile-attempts-with-futility.html
+//http://chessprogramming.wikispaces.com/Selectivity
+//http://chessprogramming.wikispaces.com/Aspiration%20Windows
+//https://web.archive.org/web/20071031100114/http://www.brucemo.com:80/compchess/programming/pv.htm
+
+//TODO check repetition
 
 bool Board::isDraw(){
 	Move moves[MAX_MOVES];

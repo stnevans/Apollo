@@ -3,19 +3,18 @@
 #include <limits.h>
 #include "bitboard.h"
 //  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-int naivePieceValue[] = {100,290,310,500,900,1000000};
+int naivePieceValue[] = {100,301,305,500,900,1000000};
 int centralization[] = {0,0,0,0,0,0,0,0,
 						0,2,2,2,2,2,2,0,
 						0,2,4,4,4,4,2,0,
-						0,2,4,7,7,4,2,0,
-						0,2,4,7,7,4,2,0,
+						0,2,5,8,8,5,2,0,
+						0,2,5,8,8,5,2,0,
 						0,2,4,4,4,4,2,0,
 						0,2,2,2,2,2,2,0,
 						0,0,0,0,0,0,0,0};
-/*int whiteEndgamePawnSquares[] = 
-					  {0,0,0,0,0,0,0,0,
-					   -10,-10,-10,-10,-10,-10,-10,-10,
-					   0,0,0,0,0,0,0,0};*/
+					   
+//int materialEvalCache = -1;
+//U8 materialCount;
 U8 popcnt(U64 bb){
 	#ifdef _WIN32
 		return __popcnt64(bb);
@@ -34,7 +33,6 @@ int centralizationValue(U64 bb){
 	}
 	return eval;
 }
-
 int Eval::basicEvaluate(Board * b){
 	if(b->isDraw()){
 		return 0;
@@ -72,6 +70,25 @@ int Eval::basicEvaluate(Board * b){
 	eval-=centralizationValue(blackKnights);
 	eval+=centralizationValue(whiteBishops);
 	eval-=centralizationValue(blackBishops);
+	//Doubled Pawns
+	for(int i = FILE_A; i < FILE_H; i++){
+		if((whitePawns& maskFile[i]) != 0){
+			eval-=50*(popcnt(whitePawns&maskFile[i])-1);
+		}
+		if((blackPawns & maskFile[i]) != 0){
+			eval+=50*(popcnt(blackPawns&maskFile[i])-1); 
+		}
+	}
+	
+	//Isolated Pawns 
+	for(int i = FILE_B; i < FILE_G; i++){
+		if(((whitePawns & maskFile[i]) !=0) && (whitePawns&maskFile[i-1] == 0) && ((whitePawns&maskFile[i+1]) == 0)){
+			eval-=50*(popcnt(whitePawns&maskFile[i]));
+		}
+		if((blackPawns & maskFile[i] !=0) && (blackPawns&maskFile[i-1] == 0) && ((blackPawns&maskFile[i+1]) == 0)){
+			eval+=50*(popcnt(blackPawns&maskFile[i])); 
+		}
+	}
 //	eval+=centralizationValue(whiteRooks);
 //	eval-=centralizationValue(blackRooks);
 //	eval+=centralizationValue(whiteQueens);
@@ -85,21 +102,15 @@ int Eval::basicEvaluate(Board * b){
 		return -eval;
 	}
 }
-int Eval::naiveEvaluate(Board * b){//TODO debug why drawn positions seemed to trigger isCheckmate?!
-	if(b->isDraw()){
-		return 0;
-	}
-	if(b->isCheckmate()){
-		return INT_MIN+1000+b->currentBoard()->moveNumber;
-	}
+int Eval::materialEvaluate(BoardInfo * b, bool whiteToMove){//TODO debug why drawn positions seemed to trigger isCheckmate?!
 	int eval = 0;
-	BoardInfo * info=b->currentBoard();
+	BoardInfo * info=b;
 	eval+=naivePieceValue[PAWN]*(popcnt(info->WhitePawnBB)-popcnt(info->BlackPawnBB));
 	eval+=naivePieceValue[KNIGHT]*(popcnt(info->WhiteKnightBB)-popcnt(info->BlackKnightBB));
 	eval+=naivePieceValue[BISHOP]*(popcnt(info->WhiteBishopBB)-popcnt(info->BlackBishopBB));
 	eval+=naivePieceValue[ROOK]*(popcnt(info->WhiteRookBB)-popcnt(info->BlackRookBB));
 	eval+=naivePieceValue[QUEEN]*(popcnt(info->WhiteQueenBB)-popcnt(info->BlackQueenBB));
-	if(info->whiteToMove){
+	if(whiteToMove){
 		return eval; 
 	}else{
 		return -eval;

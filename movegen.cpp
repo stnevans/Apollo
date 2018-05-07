@@ -46,7 +46,7 @@ U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, Move list[]){
 	}
 	return getAllBlackMoves(boardInfo, list);
 }
-
+//Pretty incredible. This is 5x slower.
 U8 getAllLegalMoves(Board* b, Move list[]){
 	//WRONG: THIS IS NOT FOR LEGAL BUT RATHER QUISIENCE
 	//For pseudo legal moves (r : list)
@@ -606,4 +606,8 @@ U8 getBlackQueenMoves(BoardInfo * b, Move moves[], int index) {
 		queens &= ~from;
 	}
 	return num_moves_generated;
+}
+
+U8 Movegen::getAllCaptures(BoardInfo * b, Move moves[]){
+	return 1;
 }

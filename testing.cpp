@@ -6,7 +6,7 @@
 #include "move.h"
 #include "movegen.h"
 #include "uci.h"
-
+#include "search.h"
 
 void printMove(Move m){
 	char from[3], to[3];
@@ -71,7 +71,7 @@ int main(){
 	initBBUtils();
 	initBBMagic();
 	b.readFromFen(startFen,&bi);
-	
+	Search::init();
 	
 	//printf("%s %i\n", b.getFen().c_str(), b.currentBoard()->moveNumber);
 

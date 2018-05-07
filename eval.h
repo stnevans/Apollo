@@ -5,7 +5,7 @@
 #include "stdafx.h"
 namespace Eval{
 	int evaluate(Board * b);
-	int naiveEvaluate(Board *b);
+	int materialEvaluate(BoardInfo *b, bool whiteToMove);
 	int basicEvaluate(Board *b);
 }
 

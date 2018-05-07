@@ -141,13 +141,15 @@ void UCI::go(Board * board, istringstream *parser){
 		if(token == "depth"){
 			(*parser) >> cfg.depth;
 		}else if(token =="wtime"){
-			(*parser) >> cfg.wtime;
+			(*parser) >> cfg.wTime;
 		}else if(token=="btime"){
-			(*parser) >> cfg.btime;
+			(*parser) >> cfg.bTime;
 		}else if(token == "winc"){
-				(*parser) >> cfg.winc;
+			(*parser) >> cfg.winc;
 		}else if(token == "binc"){
 			(*parser) >> cfg.binc;
+		}else if(token == "movetime"){
+			(*parser) >> cfg.movetime;
 		}
 	}
 	Search::setConfig(&cfg);
@@ -209,7 +211,7 @@ bool UCI::loop(){
 		}
 		if(token == "uci"){
 			std::cout << "id name Apollo 1.0\n";
-			std::cout << "id author Stuart Nevans Locke\n";
+			std::cout << "id author Stuart Nevans Locke\n\n";
 			printUciOptions();
 			std::cout << "uciok" << std::endl;
 		}else if(token == "ucinewgame"){
