@@ -15,7 +15,8 @@ void Search::init(){
 	
 }
 constexpr int futilitySize = 4; 
-int futilityMoves[] = {0,200,300,400,600};
+int futilityMoves[] = {0,150,200,400,600};
+
 
 /*
 * Called before movegenning. Basically tests if it's feasible for any move to make it bad enough that the value is below beta.
@@ -30,7 +31,7 @@ bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, 
 	}
 	int curEval = Eval::evaluate(b);
 	int futilityValue = futilityMoves[depthToGo];
-	return curEval-futilityValue < alpha;
+	return curEval+futilityValue < alpha;
 }
 /*
 * Implements futility pruning using futilityMoves[]. 
@@ -111,14 +112,20 @@ Move Search::getMinimaxMove(Board* board){
 	return bestMove;
 }
 int startDepth=0;
-bool didFullSearch=false;;
-int alphabetaHelper(Board * board, int alpha, int beta, int depth){
+int countForReturn=0;
+double endTime;//alpha is lower bound, beta upper.
+int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
+	LINE line;
 	int curEval = Eval::evaluate(board);
 	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
+		if(depth == 0){
+			pline->cmove = 0;
+		}
 		return curEval;
 	}
 	//printf("alpha: %i beta: %i\n", alpha, beta);
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
+		//printf("Eval: %i A: %i B: %i\n", curEval,alpha,beta);
 		return alpha;	
 	}
 	Move moves[MAX_MOVES];
@@ -128,34 +135,48 @@ int alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		//	continue;
 		//}
 		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board, -beta, -alpha, depth-1);
+		int val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
 		board->undoMove();
 		if(val >= beta){
 			return beta;
 		}
 		if(val > alpha){
 			alpha = val;
+            pline->argmove[0] = moves[i];
+            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+            pline->cmove = line.cmove + 1;
 		}
 	}
 	return alpha;
 }
-Move Search::getAlphabetaMove(Board * board, int depth){
-	startDepth = depth;
 
+int score = 0;
+Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
+	startDepth = depth;
 	Move moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
 	int max = INT_MIN;
 	Move bestMove;
+	LINE line;
+	orderMoves(moves,board,moveCount);
+	
 	char buffer[100] ={};
 	for(int i = 0; i < moveCount; i++){
 		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth-1);//Aspiration window would be: alpha = last_iteration_eval + window_size beta = last_iteration_eval - window_size
+		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth-1,&line);
 		board->undoMove();
+		if(get_wall_time() >= endTime){
+			return 0;
+		}
 		if(val > max){
 			max = val;
 			bestMove = moves[i];
+			pline->argmove[0] = moves[i];
+            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+            pline->cmove = line.cmove + 1;
 		}
 	}
+	score = max;
 	return bestMove;
 }
 
@@ -184,7 +205,7 @@ int quiesce(Board * board, int alpha, int beta){
 /*
 * If wtime or btime are being used, calculates the time to use on the current move.
 * If infinite search is used, the movetime is INT_MAX. 
-*/
+*/ 
 void Search::calculateMovetime(Board* b){
 	Config * config = cfg;
 	if(config->depth != 0){
@@ -204,13 +225,13 @@ void Search::calculateMovetime(Board* b){
 		}
 		int expectedMoves = 0;
 		if(moveNum < 10){
-			expectedMoves=60;
+			expectedMoves=70;
 		}else if(moveNum < 30){
-			expectedMoves = 70;
-		}else if(moveNum < 50){
 			expectedMoves = 80;
-		}else if(moveNum < 70){
+		}else if(moveNum < 50){
 			expectedMoves = 90;
+		}else if(moveNum < 70){
+			expectedMoves = 100;
 		}else if(moveNum < 100){
 			expectedMoves = 120;
 		}else if(moveNum < 200){
@@ -223,31 +244,57 @@ void Search::calculateMovetime(Board* b){
 	}
 	
 }
-
+Search::LINE lastPv;
 Move Search::iterativeDeepening(Board * board){
-	cfg->endTime = get_wall_time()+(cfg->movetime)/1000;
-	double endTime = cfg->endTime;
-
+	cfg->endTime = get_wall_time()+((cfg->movetime)/1000.0);
+	endTime = cfg->endTime;
+	char buffer[100];
 	Move bestMove=-1;
-	for(int depth = 0; depth < 100; depth++){
-		bestMove = getAlphabetaMove(board,depth);
-		printf("d: %i time: %f\n", depth, get_wall_time());
+	double startTime = get_wall_time();
+	printf("time: %f\n",startTime);
+	for(int depth = 1; depth < 200; depth++){
+		LINE line;
+		Move curMove = getAlphabetaMove(board,depth,&line);
 		if(get_wall_time() >= endTime){
+			printf("time: %f\n",get_wall_time());
 			return bestMove;
 		}
+		bestMove = curMove;
+		printf("info depth %i score cp %i time %i pv", depth, score, (int) ((get_wall_time() - startTime)*1000));
+		for(int j = 0; j < depth; j++){
+			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
+		}
+		printf("\n");
+		
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
 			}
 		}
-		
+		lastPv = line;
+		//Check uci stop command?
 	}
 	cfg->movetime=0;
 	cfg->depth=0;
 	cfg->wTime = 0;
 	cfg->bTime = 0;
-	//check uci maybe here?
+	
 	return bestMove;
+}
+Move * Search::orderMoves(Move moves[], Board * board, int numMoves){
+	Move* unordered = (Move *) malloc(sizeof(Move)*numMoves);
+	char buffer[199];
+	memcpy(unordered,moves,numMoves*sizeof(Move));
+	//if tt:probe(board) 
+	for(int i = 0; i < numMoves; i++){
+		if(lastPv.argmove[0] == unordered[i]){
+			Move temp = unordered[0];
+			moves[0] = unordered[i];
+			moves[i] = temp;
+		}
+	}
+	free(unordered);
+	return moves;
 }
 Move Search::getBestMove(Board * board){
 	calculateMovetime(board);

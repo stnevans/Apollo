@@ -7,6 +7,11 @@
 #include "uci.h"
 #include "eval.h"
 #include "search.h"
+
+#ifdef __linux__
+#include <stdio.h>
+#include "string.h"
+#endif
 using namespace std;
 std::string StartPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 //  Windows
@@ -201,6 +206,7 @@ bool UCI::loop(){
 	Board b;
 	BoardInfo info;
 	std::string token, cmd;
+	b.readFromFen(StartPositionFEN,&info);
 	while(true){
 		getline(cin,cmd);
 		istringstream parser(cmd);
