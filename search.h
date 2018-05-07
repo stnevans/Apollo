@@ -16,7 +16,7 @@ namespace Search{
 		double endTime;
 	};
 	struct LINE {
-		int cmove;              // Number of moves in the line.
+		int cmove=0;              // Number of moves in the line.
 		Move argmove[255];  // The line.
 	};
 	
