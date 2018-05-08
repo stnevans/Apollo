@@ -270,7 +270,7 @@ Move Search::iterativeDeepening(Board * board){
 		}
 		bestMove = curMove;
 		printf("info depth %i score cp %i time %i pv", depth, score, (int) ((get_wall_time() - startTime)*1000));
-		for(int j = 0; j < depth; j++){
+		for(int j = 0; j < line.cmove; j++){
 			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
 		}
 		printf("\n");

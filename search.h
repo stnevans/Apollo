@@ -12,7 +12,7 @@ namespace Search{
 		int winc=0;
 		int binc=0;
 		bool infinite=false;
-		int movetime; //in ms, ends up being used as final value in iterative deepeening.
+		int movetime; //in ms, ends up being used as final value in iterative deepening.
 		double endTime;
 	};
 	struct LINE {

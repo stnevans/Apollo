@@ -1,7 +1,7 @@
 #include "board.h"
 #include <stdlib.h>
 #include <stdio.h> // io
-#include <sstream> //stremm stuff
+#include <sstream> //stream stuff
 #include <cstring> // For std::memset, std::memcmp
 #include "bbmagic.h"
 #include "movegen.h"
@@ -11,17 +11,13 @@ BoardInfo boards[MAX_MOVECOUNT] = {};
 
 //Current TODO.  Implement Zobrist Hashing, move gen, transpo table, faster version of memcpy,
 //TODO:
-//Zobrist Hashing
 //Transpo Table
-//Faster than memcpy?
 //Cache is attacked bitboard
 //If not, cache is attacked bits. Meaning we only check for a cache hit
 //Eventually maybe test for check by only analyzing last move.
 //http://mediocrechess.blogspot.com/2007/01/guide-futile-attempts-with-futility.html
 //http://chessprogramming.wikispaces.com/Selectivity
 //http://chessprogramming.wikispaces.com/Aspiration%20Windows
-
-//TODO check repetition
 
 bool Board::isDraw(){
 	Move moves[MAX_MOVES];
