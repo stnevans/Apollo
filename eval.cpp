@@ -2,6 +2,7 @@
 #include "board.h"
 #include <limits.h>
 #include "bitboard.h"
+#include "movegen.h"
 //  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
 int naivePieceValue[] = {100,301,305,500,900,1000000};
 int centralization[] = {0,0,0,0,0,0,0,0,
@@ -89,13 +90,56 @@ int Eval::basicEvaluate(Board * b){
 			eval+=50*(popcnt(blackPawns&maskFile[i])); 
 		}
 	}
-//	eval+=centralizationValue(whiteRooks);
-//	eval-=centralizationValue(blackRooks);
-//	eval+=centralizationValue(whiteQueens);
-//	eval+=centralizationValue(blackQueens);
-//	eval+=centralizationValue(whiteKings);
-//	eval+=centralizationValue(blackKings);
-
+	//Passed pawns
+	for(int i = FILE_B; i < FILE_G; i++){
+		if(((whitePawns & maskFile[i]) !=0) && (blackPawns&maskFile[i-1] == 0) && ((blackPawns&maskFile[i+1]) == 0)){
+			eval+=60;
+		}
+		if((blackPawns & maskFile[i] !=0) && (whitePawns&maskFile[i-1] == 0) && ((whitePawns&maskFile[i+1]) == 0)){
+			eval-=60;
+		}
+	}
+	//Passed a pawns
+	if(((whitePawns & maskFile[FILE_A]) !=0) && (blackPawns&maskFile[FILE_B] == 0)){
+		eval+=60;
+	}
+	if((blackPawns & maskFile[FILE_A] !=0) && ((whitePawns&maskFile[FILE_B]) == 0)){
+		eval-=60;
+	}
+	
+	//Passed h pawns
+	if(((whitePawns & maskFile[FILE_H]) !=0) && (blackPawns&maskFile[FILE_G] == 0)){
+		eval+=60;
+	}
+	if((blackPawns & maskFile[FILE_H] !=0) && ((whitePawns&maskFile[FILE_G]) == 0)){
+		eval-=60;
+	}
+	
+	//king safety
+	//Terrible, terrible, terrible way of approximating if endgame.
+	if(info->moveNumber < 30){
+		if(whiteKings & maskFile[FILE_E] != 0 || whiteKings & maskFile[FILE_D]){
+			eval+=20;
+		}
+		if(blackKings & maskFile[FILE_E] != 0 || blackKings & maskFile[FILE_D]){
+			eval-=20;
+		}
+		/*if(whiteKings & maskFile[FILE_A] == 0){
+			if(whitePawns & (whiteKings << 9) != 0){
+				
+			eval+=10;
+			}
+		}*/
+	}
+	
+	//open files
+	
+	
+	
+	//Mobility is good
+	//Move moves[255];
+	//U8 moveCount = getPseudoLegalMoves(b,moves);
+	
 	if(info->whiteToMove){
 		return eval; 
 	}else{

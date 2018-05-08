@@ -33,6 +33,6 @@ namespace Search{
 	bool isMoveFutile(Board * b, int depthSearched, int depthToGo, int movesSearched, Move move, int alpha, int beta, int curEval);
 	void calculateMovetime(Board* b);
 	Move iterativeDeepening(Board * board);
-	Move * orderMoves(Move moves[], Board * board, int numMoves);
+	Move * orderMoves(Move moves[], Board * board, int numMoves, int curDepth);
 }
 #endif

@@ -122,6 +122,7 @@ int countForReturn=0;
 double endTime;//alpha is lower bound, beta upper.
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
 	LINE line;
+
 	int curEval = Eval::evaluate(board);
 	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
 		if(depth == 0){
@@ -136,6 +137,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	Move moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
+	orderMoves(moves,board,moveCount,startDepth-depth);
+
 	for(int i = 0; i < moveCount; i++){
 		//if(isMoveFutile(board,,depth,i,moves[i],alpha,beta,curEval)){
 		//	continue;
@@ -164,7 +167,7 @@ Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
 	int max = INT_MIN;
 	Move bestMove;
 	LINE line;
-	orderMoves(moves,board,moveCount);
+	orderMoves(moves,board,moveCount,startDepth-depth);
 	
 	char buffer[100] ={};
 	for(int i = 0; i < moveCount; i++){
@@ -231,17 +234,17 @@ void Search::calculateMovetime(Board* b){
 		}
 		int expectedMoves = 0;
 		if(moveNum < 10){
-			expectedMoves=70;
+			expectedMoves=50;
 		}else if(moveNum < 30){
-			expectedMoves = 80;
+			expectedMoves = 65;
 		}else if(moveNum < 50){
-			expectedMoves = 90;
+			expectedMoves = 80;
 		}else if(moveNum < 70){
-			expectedMoves = 100;
+			expectedMoves = 90;
 		}else if(moveNum < 100){
-			expectedMoves = 120;
+			expectedMoves = 110;
 		}else if(moveNum < 200){
-			expectedMoves = 200;
+			expectedMoves = 210;
 		}else{
 			expectedMoves = 320;
 		}	
@@ -271,7 +274,6 @@ Move Search::iterativeDeepening(Board * board){
 			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
 		}
 		printf("\n");
-		
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
@@ -287,13 +289,15 @@ Move Search::iterativeDeepening(Board * board){
 	
 	return bestMove;
 }
-Move * Search::orderMoves(Move moves[], Board * board, int numMoves){
+Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDepth){
 	Move* unordered = (Move *) malloc(sizeof(Move)*numMoves);
 	char buffer[199];
 	memcpy(unordered,moves,numMoves*sizeof(Move));
 	//if tt:probe(board) 
+	
+	//Order by pv move without testing if we are in the pv.
 	for(int i = 0; i < numMoves; i++){
-		if(lastPv.argmove[0] == unordered[i]){
+		if(lastPv.argmove[curDepth] == unordered[i]){
 			Move temp = unordered[0];
 			moves[0] = unordered[i];
 			moves[i] = temp;
