@@ -118,10 +118,10 @@ int Eval::basicEvaluate(Board * b){
 	//king safety
 	//Terrible, terrible, terrible way of approximating if endgame.
 	if(info->moveNumber < 30){
-		if(whiteKings & maskFile[FILE_E] != 0 || whiteKings & maskFile[FILE_D]){
+		if(whiteKings & maskFile[FILE_E] == 0 || whiteKings & maskFile[FILE_D] == 0){
 			eval+=20;
 		}
-		if(blackKings & maskFile[FILE_E] != 0 || blackKings & maskFile[FILE_D]){
+		if(blackKings & maskFile[FILE_E] == 0 || blackKings & maskFile[FILE_D] == 0){
 			eval-=20;
 		}
 		/*if(whiteKings & maskFile[FILE_A] == 0){
