@@ -41,6 +41,10 @@ int Eval::basicEvaluate(Board * b){
 	if(b->isCheckmate()){
 		return INT_MIN+1000+b->currentBoard()->moveNumber;
 	}
+	const int OPEN_FILE_VALUE = 50;
+	const int DOUBLE_PAWNS_PENALTY = 30;
+	const int ISOLATED_PAWNS_PENATLY = 30;
+	const int PASSED_PAWN_BONUS = 60;
 	int eval = 0;
 	BoardInfo * info=b->currentBoard();
 	
@@ -58,87 +62,85 @@ int Eval::basicEvaluate(Board * b){
 	U64 blackKings = info->BlackKingBB;
 	
 	
-	
+	//Material
 	eval+=naivePieceValue[PAWN]*(popcnt(whitePawns)-popcnt(blackPawns));
 	eval+=naivePieceValue[KNIGHT]*(popcnt(whiteKnights)-popcnt(blackKnights));
 	eval+=naivePieceValue[BISHOP]*(popcnt(whiteBishops)-popcnt(blackBishops));
 	eval+=naivePieceValue[ROOK]*(popcnt(whiteRooks)-popcnt(blackRooks));
 	eval+=naivePieceValue[QUEEN]*(popcnt(whiteQueens)-popcnt(blackQueens));
 	
+	//Centralization of pieces
 	eval+=centralizationValue(whitePawns);
 	eval-=centralizationValue(blackPawns);
 	eval+=centralizationValue(whiteKnights);
 	eval-=centralizationValue(blackKnights);
 	eval+=centralizationValue(whiteBishops);
 	eval-=centralizationValue(blackBishops);
+	
 	//Doubled Pawns
 	for(int i = FILE_A; i < FILE_H; i++){
 		if((whitePawns& maskFile[i]) != 0){
-			eval-=50*(popcnt(whitePawns&maskFile[i])-1);
+			eval-=DOUBLE_PAWNS_PENALTY*(popcnt(whitePawns&maskFile[i])-1);
 		}
 		if((blackPawns & maskFile[i]) != 0){
-			eval+=50*(popcnt(blackPawns&maskFile[i])-1); 
+			eval+=DOUBLE_PAWNS_PENALTY*(popcnt(blackPawns&maskFile[i])-1); 
 		}
 	}
 	
 	//Isolated Pawns 
 	for(int i = FILE_B; i < FILE_G; i++){
 		if(((whitePawns & maskFile[i]) !=0) && (whitePawns&maskFile[i-1] == 0) && ((whitePawns&maskFile[i+1]) == 0)){
-			eval-=50*(popcnt(whitePawns&maskFile[i]));
+			eval-=ISOLATED_PAWNS_PENATLY*(popcnt(whitePawns&maskFile[i]));
 		}
 		if((blackPawns & maskFile[i] !=0) && (blackPawns&maskFile[i-1] == 0) && ((blackPawns&maskFile[i+1]) == 0)){
-			eval+=50*(popcnt(blackPawns&maskFile[i])); 
+			eval+=ISOLATED_PAWNS_PENATLY*(popcnt(blackPawns&maskFile[i])); 
 		}
 	}
+	
+	
 	//Passed pawns
 	for(int i = FILE_B; i < FILE_G; i++){
 		if(((whitePawns & maskFile[i]) !=0) && (blackPawns&maskFile[i-1] == 0) && ((blackPawns&maskFile[i+1]) == 0)){
-			eval+=60;
+			eval+=PASSED_PAWN_BONUS;
 		}
 		if((blackPawns & maskFile[i] !=0) && (whitePawns&maskFile[i-1] == 0) && ((whitePawns&maskFile[i+1]) == 0)){
-			eval-=60;
+			eval-=PASSED_PAWN_BONUS;
 		}
 	}
 	//Passed a pawns
 	if(((whitePawns & maskFile[FILE_A]) !=0) && (blackPawns&maskFile[FILE_B] == 0)){
-		eval+=60;
+		eval+=PASSED_PAWN_BONUS;
 	}
 	if((blackPawns & maskFile[FILE_A] !=0) && ((whitePawns&maskFile[FILE_B]) == 0)){
-		eval-=60;
+		eval-=PASSED_PAWN_BONUS;
 	}
 	
 	//Passed h pawns
 	if(((whitePawns & maskFile[FILE_H]) !=0) && (blackPawns&maskFile[FILE_G] == 0)){
-		eval+=60;
+		eval+=PASSED_PAWN_BONUS;
 	}
 	if((blackPawns & maskFile[FILE_H] !=0) && ((whitePawns&maskFile[FILE_G]) == 0)){
-		eval-=60;
+		eval-=PASSED_PAWN_BONUS;
 	}
 	
-	//king safety
-	//Terrible, terrible, terrible way of approximating if endgame.
-	if(info->moveNumber < 30){
-		if(whiteKings & maskFile[FILE_E] == 0 || whiteKings & maskFile[FILE_D] == 0){
-			eval+=20;
-		}
-		if(blackKings & maskFile[FILE_E] == 0 || blackKings & maskFile[FILE_D] == 0){
-			eval-=20;
-		}
-		/*if(whiteKings & maskFile[FILE_A] == 0){
-			if(whitePawns & (whiteKings << 9) != 0){
-				
-			eval+=10;
-			}
-		}*/
-	}
+	
+	//king safety here
+	
 	
 	//open files
+	for(int i = FILE_A; i < FILE_H; i++){
+		if((whiteRooks & maskFile[i]) != 0){
+			if((whitePawns & maskFile[i]) == 0){
+				eval+=OPEN_FILE_VALUE;
+			}
+		}
+		if((blackRooks & maskFile[i]) != 0){
+			if((blackPawns & maskFile[i]) == 0){
+				eval-=OPEN_FILE_VALUE;
+			}
+		}
+	}
 	
-	
-	
-	//Mobility is good
-	//Move moves[255];
-	//U8 moveCount = getPseudoLegalMoves(b,moves);
 	
 	if(info->whiteToMove){
 		return eval; 

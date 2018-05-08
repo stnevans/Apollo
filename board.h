@@ -44,11 +44,10 @@ struct BoardInfo{
 	BitBoard WhitePiecesBB;
 	BitBoard BlackPiecesBB;
 	BitBoard AllPiecesBB;
-	
 	BoardInfo * previousBoard;//in Transpo table need depth, full board info, value, best move
 };
 
-const U16 MAX_MOVECOUNT = 550;
+const U16 MAX_MOVECOUNT = 255;
 class Board{
 	public: 
 		bool isDraw();

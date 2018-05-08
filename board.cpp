@@ -6,6 +6,7 @@
 #include "bbmagic.h"
 #include "movegen.h"
 #include "move.h"
+#include "zobrist.h"
 BoardInfo boards[MAX_MOVECOUNT] = {};
 
 //Current TODO.  Implement Zobrist Hashing, move gen, transpo table, faster version of memcpy,
@@ -19,7 +20,6 @@ BoardInfo boards[MAX_MOVECOUNT] = {};
 //http://mediocrechess.blogspot.com/2007/01/guide-futile-attempts-with-futility.html
 //http://chessprogramming.wikispaces.com/Selectivity
 //http://chessprogramming.wikispaces.com/Aspiration%20Windows
-//https://web.archive.org/web/20071031100114/http://www.brucemo.com:80/compchess/programming/pv.htm
 
 //TODO check repetition
 
@@ -28,6 +28,16 @@ bool Board::isDraw(){
 	if(getAllLegalMoves(this, moves) == 0){
 		if(!(isSquareAttacked(boardInfo, boardInfo->WhiteKingBB, true)
 				|| isSquareAttacked(boardInfo, boardInfo->BlackKingBB, false))){
+			return true;
+		}
+	}
+	int rep = 0;
+	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2 ; i+=2){
+		//printf("z: %llx\n", boards[i].zobrist);
+		if(boards[i].zobrist == boardInfo->zobrist){
+			rep++;
+		}
+		if(rep == 2){
 			return true;
 		}
 	}
@@ -184,6 +194,7 @@ Board& Board::readFromFen(std::string& fenStr, BoardInfo* board){
 	  
 	  i++;
   }
+  board->zobrist = initKeyFromBoard(this);
   return *this;
 }
 
@@ -295,6 +306,9 @@ void Board::makeMove(Move move){
 	memcpy(newInfo,boardInfo,sizeof(BoardInfo));
 	newInfo->moveNumber+=1;
 	newInfo->fiftyMoveRule+=1;
+	if(boardInfo->enPassantLoc!=ENPASSANT_NONE){
+		newInfo->zobrist^=passantColumn[getFile(boardInfo->enPassantLoc)];
+	}
 	newInfo->enPassantLoc=ENPASSANT_NONE;
 	newInfo->previousBoard = boardInfo;
 	
@@ -310,7 +324,22 @@ void Board::makeMove(Move move){
 			captureSquare = (boardInfo->whiteToMove) ? (moveDest - 8) : (moveDest + 8); //TODO, this can't be right
 			//newInfo->enPassantLoc=captureSquare;
 		}
+		U64 square = getSquare[captureSquare];
+		PieceType type;
 		if(boardInfo->whiteToMove){
+			if((boardInfo->BlackPawnBB & square) != 0){
+					type=PAWN;
+			}else if((boardInfo->BlackKingBB & square) != 0){
+				type=KING;
+			}else if((boardInfo->BlackBishopBB & square) != 0){
+				type=BISHOP;
+			}else if((boardInfo->BlackKnightBB & square) != 0){
+				type=KNIGHT;
+			}else if((boardInfo->BlackQueenBB & square) != 0){
+				type=QUEEN;
+			}else if((boardInfo->BlackRookBB & square) != 0){
+				type=ROOK;
+			}
 			newInfo->BlackBishopBB&=~getSquare[captureSquare];
 			newInfo->BlackKingBB&=~getSquare[captureSquare];
 			newInfo->BlackKnightBB&=~getSquare[captureSquare];
@@ -318,6 +347,19 @@ void Board::makeMove(Move move){
 			newInfo->BlackRookBB&=~getSquare[captureSquare];
 			newInfo->BlackQueenBB&=~getSquare[captureSquare];
 		}else{
+			if((boardInfo->WhitePawnBB & square) != 0){
+				type=PAWN;
+			}else if((boardInfo->WhiteKingBB & square) != 0){
+				type=KING;
+			}else if((boardInfo->WhiteBishopBB & square) != 0){
+				type=BISHOP;
+			}else if((boardInfo->WhiteKnightBB & square) != 0){
+				type=KNIGHT;
+			}else if((boardInfo->WhiteQueenBB & square) != 0){
+				type=QUEEN;
+			}else if((boardInfo->WhiteRookBB & square) != 0){
+				 type=ROOK;
+			}
 			newInfo->WhiteBishopBB&=~getSquare[captureSquare];
 			newInfo->WhiteKingBB&=~getSquare[captureSquare];
 			newInfo->WhiteKnightBB&=~getSquare[captureSquare];
@@ -325,6 +367,8 @@ void Board::makeMove(Move move){
 			newInfo->WhiteRookBB&=~getSquare[captureSquare];
 			newInfo->WhiteQueenBB&=~getSquare[captureSquare];
 		}
+		boardInfo->zobrist^= getSquareKey(!boardInfo->whiteToMove,captureSquare, type);
+
 		newInfo->fiftyMoveRule=0;
 	}
 	BitBoard * pieceToClear = getBitBoard(PieceMoved(move),newInfo->whiteToMove);
@@ -338,51 +382,71 @@ void Board::makeMove(Move move){
 				if((getRank(moveDest) == RANK_4) && (getRank(moveStart) == RANK_2)){
 					newInfo->enPassantLoc=moveStart+8;
 				}
+				if(newInfo->enPassantLoc!=ENPASSANT_NONE){
+					newInfo->zobrist^=passantColumn[getFile(newInfo->enPassantLoc)];
+				}
 				//If promotion, we add a piece rather than a pawn in the moveDest
 				if(type_of(move) == PROMOTION){
+					newInfo->zobrist^=getSquareKey(true,moveStart,PAWN);
 					switch(promotion_type(move)){
 						case QUEEN:
 							boardInfo->WhiteQueenBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(true,moveDest,QUEEN);
 							break;
 						case ROOK:
 							boardInfo->WhiteRookBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(true,moveDest,ROOK);
 							break;
 						case KNIGHT:
 							boardInfo->WhiteKnightBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(true,moveDest,KNIGHT);
 							break;
 						case BISHOP:
 							boardInfo->WhiteBishopBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(true,moveDest,BISHOP);
 							break;	
 					}
 				}else{
 					boardInfo->WhitePawnBB|=getSquare[moveDest];	
+					newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,PAWN);
 				}
-				
 				break;
 			case KNIGHT:
 				boardInfo->WhiteKnightBB|=getSquare[moveDest];
+				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,KNIGHT);
 				break;
 			case BISHOP:
 				boardInfo->WhiteBishopBB|=getSquare[moveDest];
+				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,BISHOP);
 				break;
 			case ROOK:
+				
 				if(moveStart== SQ_H1){
 					newInfo->whiteKingCastle=false;
+					if(boardInfo->whiteKingCastle){
+						newInfo->zobrist^=whiteKingSideCastling;
+					}
 				}else if(moveStart==SQ_A1){
+					if(boardInfo->whiteQueenCastle){
+						newInfo->zobrist^=whiteQueenSideCastling;
+					}
 					newInfo->whiteQueenCastle=false;
-				}else if(moveStart==SQ_H8){
-					newInfo->blackKingCastle=false;
-				}else if(moveStart==SQ_A8){
-					newInfo->blackQueenCastle=false;
 				}
+				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,ROOK);
 				boardInfo->WhiteRookBB|=getSquare[moveDest];
 				break;
 			case KING:
 				newInfo->whiteHasCastled=true;
+				if(boardInfo->whiteKingCastle){
+					newInfo->zobrist^=whiteKingSideCastling;
+				}
+				if(boardInfo->whiteQueenCastle){
+					newInfo->zobrist^=whiteQueenSideCastling;
+				}
 				newInfo->whiteKingCastle=false;
 				newInfo->whiteQueenCastle=false;
 				if(type_of(move) == CASTLING){
-					//If Kingside, assumes e1g1 would be castling
+					//If Kingside, assumes e1g1 would be castling. Pretty easy to break.
 					U8 rookFrom, rookTo;
 					if(moveDest == SQ_G1){
 						rookFrom = SQ_H1;
@@ -393,10 +457,13 @@ void Board::makeMove(Move move){
 					}
 					boardInfo->WhiteRookBB|=getSquare[rookTo];
 					boardInfo->WhiteRookBB^=getSquare[rookFrom];
+					newInfo->zobrist^=getKeyForMove(true,rookFrom,rookTo,ROOK);
 				}
+				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,KING);
 				boardInfo->WhiteKingBB|=getSquare[moveDest];
 				break;
 			case QUEEN:
+				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,QUEEN);
 				boardInfo->WhiteQueenBB|=getSquare[moveDest];
 				break;
 			default:
@@ -409,36 +476,67 @@ void Board::makeMove(Move move){
 				if((getRank(moveDest) == RANK_5) && (getRank(moveStart) == RANK_7)){
 					newInfo->enPassantLoc=moveStart-8;
 				}
+				
+				if(newInfo->enPassantLoc!=ENPASSANT_NONE){
+					newInfo->zobrist^=passantColumn[getFile(newInfo->enPassantLoc)];
+				}
 				if(type_of(move) == PROMOTION){
+					newInfo->zobrist^=getSquareKey(false,moveStart,PAWN);
+
 					switch(promotion_type(move)){
 						case QUEEN:
 							boardInfo->BlackQueenBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(false,moveDest,QUEEN);
 							break;
 						case ROOK:
 							boardInfo->BlackRookBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(false,moveDest,QUEEN);
 							break;
 						case KNIGHT:
 							boardInfo->BlackKnightBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(false,moveDest,KNIGHT);
 							break;
 						case BISHOP:
 							boardInfo->BlackBishopBB|=getSquare[moveDest];
+							newInfo->zobrist^=getSquareKey(false,moveDest,BISHOP);
 							break;	
 					}
 				}else{
+					newInfo->zobrist^=getKeyForMove(false,moveStart,moveDest,PAWN);
 					boardInfo->BlackPawnBB|=getSquare[moveDest];
 				}
 				break;
 			case KNIGHT:
+				newInfo->zobrist^=getKeyForMove(false,moveStart,moveDest,KNIGHT);
 				boardInfo->BlackKnightBB|=getSquare[moveDest];
 				break;
 			case BISHOP:
+				newInfo->zobrist^=getKeyForMove(false,moveStart,moveDest,BISHOP);
 				boardInfo->BlackBishopBB|=getSquare[moveDest];
 				break;
 			case ROOK:
+				if(moveStart==SQ_H8){
+					if(boardInfo->blackKingCastle){
+						newInfo->zobrist^=blackKingSideCastling;
+					}
+					newInfo->blackKingCastle=false;
+				}else if(moveStart==SQ_A8){
+					if(boardInfo->blackQueenCastle){
+						newInfo->zobrist^=blackQueenSideCastling;
+					}
+					newInfo->blackQueenCastle=false;
+				}
+				newInfo->zobrist^=getKeyForMove(false,moveStart,moveDest,ROOK);
 				boardInfo->BlackRookBB|=getSquare[moveDest];
 				break;
 			case KING:
 				newInfo->blackHasCastled=true;
+				if(boardInfo->whiteKingCastle){
+					newInfo->zobrist^=blackKingSideCastling;
+				}
+				if(boardInfo->whiteQueenCastle){
+					newInfo->zobrist^=blackQueenSideCastling;
+				}
 				newInfo->blackKingCastle=false;
 				newInfo->blackQueenCastle=false;
 				if(type_of(move) == CASTLING){
@@ -451,21 +549,26 @@ void Board::makeMove(Move move){
 						rookFrom = SQ_A8;
 						rookTo=SQ_D8;
 					}
+					newInfo->zobrist^=getKeyForMove(false,rookFrom,rookTo,ROOK);
+
 					boardInfo->BlackRookBB|=getSquare[rookTo];
 					boardInfo->BlackRookBB^=getSquare[rookFrom];
 				}
+				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,KING);
+
 				boardInfo->BlackKingBB|=getSquare[moveDest];				
 				break;
 			case QUEEN:
+				newInfo->zobrist^=getKeyForMove(false,moveStart,moveDest,QUEEN);
 				boardInfo->BlackQueenBB|=getSquare[moveDest];
 				break;
 			default:
 				printf("ERROR: IMPOSSIBLE PIECE MAKE MOVE\n");
 		}				
-		}
-		newInfo->whiteToMove=!newInfo->whiteToMove;
-
-		updateSpecialBB(newInfo);
+	}
+	newInfo->whiteToMove=!newInfo->whiteToMove;
+	newInfo->zobrist^=whiteMove;
+	updateSpecialBB(newInfo);
 		
 }
 
@@ -480,7 +583,11 @@ void Board::makeNullMove(){
 	newInfo->fiftyMoveRule+=1;
 	newInfo->enPassantLoc=ENPASSANT_NONE;
 	newInfo->previousBoard = boardInfo;
-	
+	newInfo->zobrist^=whiteMove;
+
+	if(boardInfo->enPassantLoc!=ENPASSANT_NONE){
+		newInfo->zobrist^=passantColumn[getFile(boardInfo->enPassantLoc)];
+	}
 	newInfo->whiteToMove=!newInfo->whiteToMove;
 	boardInfo=newInfo;
 	//updateSpecialBB(newInfo);

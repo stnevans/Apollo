@@ -7,7 +7,7 @@
 #include "movegen.h"
 #include "uci.h"
 #include "search.h"
-
+#include "zobrist.h"
 void printMove(Move m){
 	char from[3], to[3];
 	char* arr = getAlgebraicPos(from_sq(m));

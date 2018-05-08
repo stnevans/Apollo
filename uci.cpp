@@ -200,7 +200,7 @@ void UCI::perft(Board * board, istringstream * parser){
 	double newTime = get_wall_time();
 	printf("---------------\n");
 	printf("Nodes: %i\n" , numNodes);
-	printf("Took %f s. nps: %f.\n",newTime-time,numNodes/(newTime-time));
+	printf("Took %fs. nps: %f.\n",newTime-time,numNodes/(newTime-time));
 }
 bool UCI::loop(){
 	Board b;
@@ -235,7 +235,7 @@ bool UCI::loop(){
 		}else if(token == "eval"){
 			printf("Current Position: %i\n",Eval::evaluate(&b));
 		}else if(token == "d"){
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw());
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist);
 		}
 	}
 	return true;
