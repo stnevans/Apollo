@@ -22,10 +22,10 @@ U8 getAllBlackMoves(BoardInfo * boardInfo, Move list[]){
 	int idx = 0;
 	idx+= getBlackBishopMoves(boardInfo, list, idx);
 	idx+=getBlackKnightMoves(boardInfo, list, idx);
-	idx+= getBlackKingMoves(boardInfo, list, idx);
 	idx+=getBlackRookMoves(boardInfo, list, idx);
 	idx+=getBlackQueenMoves(boardInfo, list, idx);
 	idx+=getBlackPawnMoves(boardInfo, list, idx);
+	idx+= getBlackKingMoves(boardInfo, list, idx);
 
 	return idx;
 }
@@ -34,10 +34,11 @@ U8 getAllWhiteMoves(BoardInfo* boardInfo, Move list[]){
 	int idx = 0;
 	idx+= getWhiteBishopMoves(boardInfo, list, idx);
 	idx+=getWhiteKnightMoves(boardInfo, list, idx);
-	idx+= getWhiteKingMoves(boardInfo, list, idx);
 	idx+=getWhiteRookMoves(boardInfo, list, idx);
 	idx+=getWhiteQueenMoves(boardInfo, list, idx);
 	idx+=getWhitePawnMoves(boardInfo, list, idx);
+	idx+= getWhiteKingMoves(boardInfo, list, idx);
+
 	return idx;
 }
 U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, Move list[]){
@@ -46,7 +47,8 @@ U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, Move list[]){
 	}
 	return getAllBlackMoves(boardInfo, list);
 }
-//Pretty incredible. This is 5x slower.
+
+//Pretty incredible. This is 5x slower than pseudo legal.
 U8 getAllLegalMoves(Board* b, Move list[]){
 	//WRONG: THIS IS NOT FOR LEGAL BUT RATHER QUISIENCE
 	//For pseudo legal moves (r : list)
@@ -64,8 +66,12 @@ U8 getAllLegalMoves(Board* b, Move list[]){
 	//https://chess.stackexchange.com/questions/15705/c-vs-java-engine-move-generation-performance
 	
 	//FOR NOW:
+	
+	
+	//This seems like it should be done by getting xrays and checking king moves. A random bishop move.
 	U8 count = getAllPseudoLegalMoves(b->currentBoard(), list);
 	int j = 0;
+	U64 xrays =getXrayAttacks(b->currentBoard(),trailingZeroCount(b->currentBoard()->WhiteKingBB));
 	for (int i = 0; i < count; i++) {
 		b->makeMove(list[i]);
 		if(b->legal()){

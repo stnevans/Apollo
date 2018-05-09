@@ -7,7 +7,7 @@
 #include "uci.h"
 #include "eval.h"
 #include "search.h"
-
+#include "bbmagic.h"
 #ifdef __linux__
 #include <stdio.h>
 #include "string.h"
@@ -235,7 +235,7 @@ bool UCI::loop(){
 		}else if(token == "eval"){
 			printf("Current Position: %i\n",Eval::evaluate(&b));
 		}else if(token == "d"){
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist);
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nXrays: %llx\nMore: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist,getXrayAttacksSliding(b.currentBoard(), trailingZeroCount(b.currentBoard()->WhiteKingBB)),getXrayAttacks(b.currentBoard(), trailingZeroCount(b.currentBoard()->WhiteKingBB)));
 		}
 	}
 	return true;

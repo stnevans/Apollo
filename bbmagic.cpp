@@ -128,7 +128,6 @@ bool isIndexAttacked(BoardInfo* b, U8 i, bool whiteToMove) {
 		return true;
 	}
 	if ( (knight[i] & (b->WhiteKnightBB | b->BlackKnightBB) & others) != 0){
-
 		return true;
 	}
 	if ( (getRookAttacks(i, all)
@@ -154,6 +153,10 @@ U64 getIndexAttacks(BoardInfo* b, int i) {
 			| (getRookAttacks(i, all) & ( (b->WhiteRookBB | b->BlackRookBB) | (b->WhiteQueenBB | b->BlackQueenBB)))
 			| (getBishopAttacks(i, all) & ( (b->WhiteBishopBB | b->BlackBishopBB) | (b->WhiteQueenBB | b->BlackQueenBB))));
 }
+/*
+U64 getOpponentXrays(BoardInfo * b, int loc, bool considerWhitePieces){
+	return getXrayAttacks(b, loc, considerWhitePieces ? b->WhitePiecesBB : b->BlackPiecesBB);
+}*/
 
 U64 getXrayAttacks(BoardInfo* b, int i) {
 	return getXrayAttacks(b, i, b->AllPiecesBB);
@@ -162,11 +165,27 @@ U64 getXrayAttacks(BoardInfo* b, int i) {
 U64 getXrayAttacks(BoardInfo* b, int i, U64 all) {
 	if (i < 0 || i > 63)
 		return 0;
-	
+	//printf("r: %llx",getRookAttacks(i,all));
+	//printf("b: %llx\n",getBishopAttacks(i,all));
+
 	return ( (getRookAttacks(i, all) & ( (b->WhiteRookBB | b->BlackRookBB) | (b->WhiteQueenBB | b->BlackQueenBB))) | (getBishopAttacks(
 			i, all) & ( (b->WhiteBishopBB | b->BlackBishopBB) | (b->WhiteQueenBB | b->BlackQueenBB))))
 			& all;
 }
+
+U64 getXrayAttacksSlidings(BoardInfo* b, int i, U64 all);
+U64 getXrayAttacksSliding(BoardInfo* b, int i) {
+	return getXrayAttacksSlidings(b, i, b->AllPiecesBB);
+}
+
+U64 getXrayAttacksSlidings(BoardInfo* b, int i, U64 all) {
+	if (i < 0 || i > 63)
+		return 0;
+	
+	return ( (getRookAttacks(i, all) & ( (b->WhiteRookBB | b->BlackRookBB) | (b->WhiteQueenBB | b->BlackQueenBB))) | (getBishopAttacks(
+			i, all) & ( (b->WhiteBishopBB | b->BlackBishopBB) | (b->WhiteQueenBB | b->BlackQueenBB))));
+}
+
 U64 getRookAttacks(int index, U64 all) {
 	int i =
 			transform(all & rookMask[index], magicRookNumbers[index],

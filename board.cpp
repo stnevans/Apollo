@@ -29,7 +29,7 @@ bool Board::isDraw(){
 	}
 	int rep = 0;
 	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2 ; i+=2){
-		//printf("z: %llx\n", boards[i].zobrist);
+		printf("z: %llx\n", boards[i].zobrist);
 		if(boards[i].zobrist == boardInfo->zobrist){
 			rep++;
 		}
@@ -550,7 +550,7 @@ void Board::makeMove(Move move){
 					boardInfo->BlackRookBB|=getSquare[rookTo];
 					boardInfo->BlackRookBB^=getSquare[rookFrom];
 				}
-				newInfo->zobrist^=getKeyForMove(true,moveStart,moveDest,KING);
+				newInfo->zobrist^=getKeyForMove(false,moveStart,moveDest,KING);
 
 				boardInfo->BlackKingBB|=getSquare[moveDest];				
 				break;
