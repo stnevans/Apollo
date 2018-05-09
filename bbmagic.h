@@ -21,7 +21,6 @@ U64 squareAttackedAuxSliderMask(U64 square, int shift, U64 border);
 U64 squareAttackedAuxSlider(U64 square, int shift, U64 border);
 U64 squareAttackedAux(U64 square, int shift, U64 border);
 U64 squareAttackedAux(U64 square, U64 all, int shift, U64 border);
-
-
+U64 getXrayAttacksSliding(BoardInfo* b, int i);
 void initBBMagic();
 #endif

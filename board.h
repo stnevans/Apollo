@@ -57,6 +57,7 @@ class Board{
 		std::string getFen();
 		Board& readFromFen(std::string& fen, BoardInfo* board);
 		
+		void fastMakeMove(Move move);
 		void makeMove(Move m);
 		void undoMove();
 		void makeNullMove();

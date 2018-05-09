@@ -235,7 +235,7 @@ bool UCI::loop(){
 		}else if(token == "eval"){
 			printf("Current Position: %i\n",Eval::evaluate(&b));
 		}else if(token == "d"){
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nXrays: %llx\nMore: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist,getXrayAttacksSliding(b.currentBoard(), trailingZeroCount(b.currentBoard()->WhiteKingBB)),getXrayAttacks(b.currentBoard(), trailingZeroCount(b.currentBoard()->WhiteKingBB)));
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nRook Pins: %llx\nBis Pins: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist,getRookAttacks(trailingZeroCount(b.currentBoard()->WhiteKingBB),b.currentBoard()->BlackPiecesBB)&b.currentBoard()->BlackRookBB,getBishopAttacks(trailingZeroCount(b.currentBoard()->BlackKingBB),b.currentBoard()->WhitePiecesBB)&(~(b.currentBoard()->WhiteBishopBB|b.currentBoard()->WhiteQueenBB)));
 		}
 	}
 	return true;

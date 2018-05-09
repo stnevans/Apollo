@@ -19,6 +19,10 @@ BoardInfo boards[MAX_MOVECOUNT] = {};
 //http://chessprogramming.wikispaces.com/Selectivity
 //http://chessprogramming.wikispaces.com/Aspiration%20Windows
 
+bool validCache;
+bool isInCheckCache;
+
+
 bool Board::isDraw(){
 	Move moves[MAX_MOVES];
 	if(getAllLegalMoves(this, moves) == 0){
@@ -29,7 +33,6 @@ bool Board::isDraw(){
 	}
 	int rep = 0;
 	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2 ; i+=2){
-		printf("z: %llx\n", boards[i].zobrist);
 		if(boards[i].zobrist == boardInfo->zobrist){
 			rep++;
 		}
@@ -56,6 +59,9 @@ bool Board::isCheckmate(){
 }
 //We are in check if it is our turn and they can take our king
 bool Board::isOwnKingInCheck(){
+	//if(validCache){
+	//	return isInCheckCache;
+	//}
 	if(boardInfo->whiteToMove){
 		return isSquareAttacked(currentBoard(), boardInfo->WhiteKingBB, true);
 	}
@@ -191,6 +197,7 @@ Board& Board::readFromFen(std::string& fenStr, BoardInfo* board){
 	  i++;
   }
   board->zobrist = initKeyFromBoard(this);
+  validCache = false;
   return *this;
 }
 
@@ -295,9 +302,160 @@ void printMove1(Move m){
 	to[0] = arr[0];to[1]=arr[1];to[2]=arr[2];
 	printf("%s %s\n",from,to);
 }
+
+void Board::fastMakeMove(Move move){
+	BoardInfo* newInfo = &boards[boardInfo->moveNumber+1];
+	memcpy(newInfo,boardInfo,sizeof(BoardInfo));
+	newInfo->previousBoard = boardInfo;
+	boardInfo = newInfo;
+	BitBoard opponentBB = getAllPiecesBitBoard(boardInfo->whiteToMove);
+	U8 moveDest = to_sq(move);
+	U8 moveStart = from_sq(move);
+	//If capture, we clear the piece from the opponents BB.
+	if((getSquare[moveDest] & opponentBB) != 0 || type_of(move) == ENPASSANT){
+		U8 captureSquare = moveDest;
+		if(type_of(move) == ENPASSANT){
+			//The idea is moving up/down a row from the destination. 
+			captureSquare = (boardInfo->whiteToMove) ? (moveDest - 8) : (moveDest + 8); //TODO, this can't be right
+			//newInfo->enPassantLoc=captureSquare;
+		}
+		U64 square = getSquare[captureSquare];
+		if(boardInfo->whiteToMove){
+			newInfo->BlackBishopBB&=~getSquare[captureSquare];
+			newInfo->BlackKingBB&=~getSquare[captureSquare];
+			newInfo->BlackKnightBB&=~getSquare[captureSquare];
+			newInfo->BlackPawnBB&=~getSquare[captureSquare];
+			newInfo->BlackRookBB&=~getSquare[captureSquare];
+			newInfo->BlackQueenBB&=~getSquare[captureSquare];
+		}else{
+			newInfo->WhiteBishopBB&=~getSquare[captureSquare];
+			newInfo->WhiteKingBB&=~getSquare[captureSquare];
+			newInfo->WhiteKnightBB&=~getSquare[captureSquare];
+			newInfo->WhitePawnBB&=~getSquare[captureSquare];
+			newInfo->WhiteRookBB&=~getSquare[captureSquare];
+			newInfo->WhiteQueenBB&=~getSquare[captureSquare];
+		}
+	}
+	BitBoard * pieceToClear = getBitBoard(PieceMoved(move),newInfo->whiteToMove);
+	*pieceToClear &=~getSquare[moveStart];
+	
+	
+	
+	
+	if(boardInfo->whiteToMove){
+		switch(PieceMoved(move)){
+			case PAWN:
+				if(type_of(move) == PROMOTION){
+					switch(promotion_type(move)){
+						case QUEEN:
+							boardInfo->WhiteQueenBB|=getSquare[moveDest];
+							break;
+						case ROOK:
+							boardInfo->WhiteRookBB|=getSquare[moveDest];
+							break;
+						case KNIGHT:
+							boardInfo->WhiteKnightBB|=getSquare[moveDest];
+							break;
+						case BISHOP:
+							boardInfo->WhiteBishopBB|=getSquare[moveDest];
+							break;	
+					}
+				}else{
+					boardInfo->WhitePawnBB|=getSquare[moveDest];	
+				}
+				break;
+			case KNIGHT:
+				boardInfo->WhiteKnightBB|=getSquare[moveDest];
+				break;
+			case BISHOP:
+				boardInfo->WhiteBishopBB|=getSquare[moveDest];
+				break;
+			case ROOK:				
+				
+				boardInfo->WhiteRookBB|=getSquare[moveDest];
+				break;
+			case KING:
+				
+				if(type_of(move) == CASTLING){
+					//If Kingside, assumes e1g1 would be castling. Pretty easy to break.
+					U8 rookFrom, rookTo;
+					if(moveDest == SQ_G1){
+						rookFrom = SQ_H1;
+						rookTo = SQ_F1;
+					}else{//Queenside 
+						rookFrom = SQ_A1;
+						rookTo=SQ_D1;
+					}
+					boardInfo->WhiteRookBB|=getSquare[rookTo];
+					boardInfo->WhiteRookBB^=getSquare[rookFrom];
+				}
+				boardInfo->WhiteKingBB|=getSquare[moveDest];
+				break;
+			case QUEEN:
+				boardInfo->WhiteQueenBB|=getSquare[moveDest];
+				break;
+		}		
+	}else{
+		switch(PieceMoved(move)){
+			case PAWN:
+				if(type_of(move) == PROMOTION){
+					switch(promotion_type(move)){
+						case QUEEN:
+							boardInfo->BlackQueenBB|=getSquare[moveDest];
+							break;
+						case ROOK:
+							boardInfo->BlackRookBB|=getSquare[moveDest];
+							break;
+						case KNIGHT:
+							boardInfo->BlackKnightBB|=getSquare[moveDest];
+							break;
+						case BISHOP:
+							boardInfo->BlackBishopBB|=getSquare[moveDest];
+							break;	
+					}
+				}else{
+					boardInfo->BlackPawnBB|=getSquare[moveDest];
+				}
+				break;
+			case KNIGHT:
+				boardInfo->BlackKnightBB|=getSquare[moveDest];
+				break;
+			case BISHOP:
+				boardInfo->BlackBishopBB|=getSquare[moveDest];
+				break;
+			case ROOK:
+				boardInfo->BlackRookBB|=getSquare[moveDest];
+				break;
+			case KING:
+				if(type_of(move) == CASTLING){
+					//If Kingside
+					U8 rookFrom, rookTo;
+					if(moveDest == SQ_G8){
+						rookFrom = SQ_H8;
+						rookTo = SQ_F8;
+					}else{//Queenside 
+						rookFrom = SQ_A8;
+						rookTo=SQ_D8;
+					}
+					boardInfo->BlackRookBB|=getSquare[rookTo];
+					boardInfo->BlackRookBB^=getSquare[rookFrom];
+				}
+				boardInfo->BlackKingBB|=getSquare[moveDest];				
+				break;
+			case QUEEN:
+				boardInfo->BlackQueenBB|=getSquare[moveDest];
+				break;
+				
+		}				
+	}
+	newInfo->whiteToMove=!newInfo->whiteToMove;
+	updateSpecialBB(newInfo);
+	
+}
 void Board::makeMove(Move move){
 	//TODO test this speed vs manually copying. No idea what's faster. also maybe *newInfo = *board Info
 	//Copy current BoardInfo
+	validCache = false;
 	BoardInfo* newInfo = &boards[boardInfo->moveNumber+1];
 	memcpy(newInfo,boardInfo,sizeof(BoardInfo));
 	newInfo->moveNumber+=1;
@@ -570,6 +728,7 @@ void Board::makeMove(Move move){
 
 void Board::undoMove(){
 	boardInfo=boardInfo->previousBoard;
+	validCache=false;
 }
 
 void Board::makeNullMove(){
@@ -586,6 +745,7 @@ void Board::makeNullMove(){
 	}
 	newInfo->whiteToMove=!newInfo->whiteToMove;
 	boardInfo=newInfo;
+	validCache=false;
 	//updateSpecialBB(newInfo);
 }
 

@@ -165,9 +165,6 @@ U64 getXrayAttacks(BoardInfo* b, int i) {
 U64 getXrayAttacks(BoardInfo* b, int i, U64 all) {
 	if (i < 0 || i > 63)
 		return 0;
-	//printf("r: %llx",getRookAttacks(i,all));
-	//printf("b: %llx\n",getBishopAttacks(i,all));
-
 	return ( (getRookAttacks(i, all) & ( (b->WhiteRookBB | b->BlackRookBB) | (b->WhiteQueenBB | b->BlackQueenBB))) | (getBishopAttacks(
 			i, all) & ( (b->WhiteBishopBB | b->BlackBishopBB) | (b->WhiteQueenBB | b->BlackQueenBB))))
 			& all;
@@ -296,3 +293,5 @@ void initBBMagic(){
 	}
 	square = 1<<1;
 }
+
+
