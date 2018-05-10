@@ -16,13 +16,6 @@ int centralization[] = {0,0,0,0,0,0,0,0,
 					   
 //int materialEvalCache = -1;
 //U8 materialCount;
-U8 popcnt(U64 bb){
-	#ifdef _WIN32
-		return __popcnt64(bb);
-	#else
-		return __builtin_popcountll(bb);
-	#endif
-}
 
 int centralizationValue(U64 bb){
 	int eval = 0;
@@ -41,10 +34,11 @@ int Eval::basicEvaluate(Board * b){
 	if(b->isCheckmate()){
 		return INT_MIN+1000+b->currentBoard()->moveNumber;
 	}
-	const int OPEN_FILE_VALUE = 50;
-	const int DOUBLE_PAWNS_PENALTY = 30;
-	const int ISOLATED_PAWNS_PENATLY = 30;
-	const int PASSED_PAWN_BONUS = 60;
+	const int OPEN_FILE_VALUE = 25;
+	const int SEMI_OPEN_FILE_VALUE = 20;
+	const int DOUBLE_PAWNS_PENALTY = 15;
+	const int ISOLATED_PAWNS_PENATLY = 15;
+	const int PASSED_PAWN_BONUS = 25;
 	int eval = 0;
 	BoardInfo * info=b->currentBoard();
 	
@@ -127,20 +121,29 @@ int Eval::basicEvaluate(Board * b){
 	//king safety here
 	
 	
-	//open files
+	//open and semiopen files
 	for(int i = FILE_A; i < FILE_H; i++){
-		if((whiteRooks & maskFile[i]) != 0){
+		if(((whiteRooks | whiteQueens)& maskFile[i]) != 0){
 			if((whitePawns & maskFile[i]) == 0){
-				eval+=OPEN_FILE_VALUE;
+				if((blackPawns & maskFile[i]) == 0){
+					eval+=OPEN_FILE_VALUE;
+				}else{
+					eval+=SEMI_OPEN_FILE_VALUE;
+				}
 			}
 		}
-		if((blackRooks & maskFile[i]) != 0){
+		if(((blackRooks| blackQueens) & maskFile[i]) != 0){
 			if((blackPawns & maskFile[i]) == 0){
-				eval-=OPEN_FILE_VALUE;
+				if(whitePawns & maskFile[i] == 0){
+					eval-=OPEN_FILE_VALUE;
+				}else{
+					eval-=SEMI_OPEN_FILE_VALUE;
+				}
 			}
 		}
 	}
 	
+	//bishops
 	
 	if(info->whiteToMove){
 		return eval; 

@@ -11,6 +11,14 @@
  U64 lowestOneBit(U64 i){
 	return i & -((S64) i);
 }
+
+U8 popcnt(U64 bb){
+	#ifdef _WIN32
+		return __popcnt64(bb);
+	#else
+		return __builtin_popcountll(bb);
+	#endif
+}
 int trailingZeroCount(U64 bb) {
    static const int lookup67[67+1] = {
       64,  0,  1, 39,  2, 15, 40, 23,

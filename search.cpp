@@ -87,7 +87,8 @@ int score = 0; //Used to communicate the score of the best move returned by ab s
 U64 nodeCount = 0; //Just nodes where eval is called
 
 bool currentlyFollowingPv;
-
+bool canDoNullMove;
+const int nullMoveEndgame = 350;
 /*
 * The main search function. 
 */
@@ -107,12 +108,11 @@ Move Search::iterativeDeepening(Board * board){
 	}
 	for(int depth = 1; depth < 200; depth++){
 		nodeCount = 0;
-		LINE line;
-		
+		LINE line;		
 		currentlyFollowingPv = true;
+		canDoNullMove = true;
 		
 		Move curMove = getAlphabetaMove(board,depth,&line);
-
 
 		if(get_wall_time() >= endTime){
 			return bestMove;
@@ -120,7 +120,9 @@ Move Search::iterativeDeepening(Board * board){
 		bestMove = curMove;
 		
 		//Print info about the search we just did
-		printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+		if(!board->isCheckmate()){
+			printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+		}
 		for(int j = 0; j < line.cmove; j++){
 			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
 		}
@@ -199,11 +201,29 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		nodeCount++;
 		return curEval;
 	}
-	//printf("alpha: %i beta: %i\n", alpha, beta);
+	
+	//Hope to prune!
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
-		//printf("Eval: %i A: %i B: %i\n", curEval,alpha,beta);
 		return beta;	
 	}
+	
+	//Null Move
+	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 1){
+		LINE useless;
+		canDoNullMove=false;
+		board->makeNullMove();
+		int reduction = 3;
+		if(depth > 5){
+			reduction = 4;
+		}
+		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
+		board->undoMove();
+		canDoNullMove=true;
+		if(val >= beta){return beta;}
+	}
+
+	canDoNullMove=true;
+
 	Move moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
 	bool whiteToMove = board->currentBoard()->whiteToMove;
@@ -215,7 +235,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		//}
 
 		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
+		int val;
+		val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
 		board->undoMove();
 		
 		//Beta Cutoff
@@ -230,9 +251,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		}
 		if(val > alpha){
 			alpha = val;
-            pline->argmove[0] = moves[i];
-            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-            pline->cmove = line.cmove + 1;
+				pline->argmove[0] = moves[i];
+				memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+				pline->cmove = line.cmove + 1;
 			alphaHits++;
 			bestMove = moves[i];
 		}

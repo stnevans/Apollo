@@ -54,8 +54,11 @@ class Board{
 		bool isOwnKingInCheck();
 		bool legal();
 		bool isCheckmate();
+		int currentSideMaterial();
+		
 		std::string getFen();
 		Board& readFromFen(std::string& fen, BoardInfo* board);
+		
 		
 		void fastMakeMove(Move move);
 		void makeMove(Move m);

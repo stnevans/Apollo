@@ -5,7 +5,7 @@
 #include "stdafx.h"
 
 typedef U64 BitBoard;
-
+U8 popcnt(U64 bb);
 U8 getSq(int rank, int file);
 int getFile(U8 sq);
 int getRank(U8 sq);	

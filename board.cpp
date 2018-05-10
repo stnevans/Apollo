@@ -22,7 +22,17 @@ BoardInfo boards[MAX_MOVECOUNT] = {};
 bool validCache;
 bool isInCheckCache;
 
-
+int Board::currentSideMaterial(){
+	int KNIGHT = 300;
+	int BISHOP = 320;
+	int ROOK = 500;
+	int QUEEN = 960;
+	if(boardInfo->whiteToMove){
+		return popcnt(boardInfo->WhiteKnightBB)*KNIGHT+popcnt(boardInfo->WhiteRookBB)*ROOK+popcnt(boardInfo->WhiteBishopBB)*BISHOP+popcnt(boardInfo->WhiteQueenBB)*QUEEN;
+	}else{
+		return popcnt(boardInfo->BlackKnightBB)*KNIGHT+popcnt(boardInfo->BlackRookBB)*ROOK+popcnt(boardInfo->BlackBishopBB)*BISHOP+popcnt(boardInfo->BlackQueenBB)*QUEEN;
+	}
+}
 bool Board::isDraw(){
 	Move moves[MAX_MOVES];
 	if(getAllLegalMoves(this, moves) == 0){
