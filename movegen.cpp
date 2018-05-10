@@ -634,7 +634,50 @@ U8 getBlackQueenMoves(BoardInfo * b, Move moves[], int index) {
 	}
 	return num_moves_generated;
 }
-
-U8 Movegen::getAllCaptures(BoardInfo * b, Move moves[]){
-	return 1;
+//TODO needs to be vastly improved
+U8 Movegen::getAllCaptures(Board * b, Move moves[]){
+	U8 movess = getAllLegalMoves(b,moves);
+	U64 piecesToCap;
+	if(b->currentBoard()->whiteToMove){
+		piecesToCap = b->currentBoard()->BlackPiecesBB;
+	}else{
+		piecesToCap = b->currentBoard()->WhitePiecesBB;
+	}
+	
+	int j = 0;
+	for(int i = 0; i < movess; i++){
+		 if((getSquare[to_sq(moves[i])] & piecesToCap) != 0 || type_of(moves[i]) == PROMOTION){
+			if(b->staticExchange(moves[i]) > 0){
+				moves[j++] = moves[i];
+			}
+		 }
+	}
+	return j;
 }
+
+/*
+U8 getBlackQueenCaptures(BoardInfo * b, Move moves[], int index) {
+	U64 queens = b->BlackQueenBB;
+	U8 num_moves_generated = 0;
+	
+	while (queens != 0L) {
+		U64 from = lowestOneBit(queens);
+		U8 from_loc = trailingZeroCount(from);
+		U64 movelocs =
+				getQueenAttacks(from_loc, b->AllPiecesBB & ~from);
+		movelocs &= ~b->BlackPiecesBB;
+		
+		while (movelocs != 0L) {
+			U64 to = lowestOneBit(movelocs);
+			U8 to_loc = trailingZeroCount(to);
+			Move move =
+					createMove(from_loc, to_loc, QUEEN);
+			moves[index + num_moves_generated] = move;
+			num_moves_generated++;
+			movelocs &= ~to;
+		}
+		
+		queens &= ~from;
+	}
+	return num_moves_generated;
+}*/

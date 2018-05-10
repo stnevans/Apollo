@@ -32,5 +32,6 @@ namespace Search{
 	void calculateMovetime(Board* b);
 	Move iterativeDeepening(Board * board);
 	Move * orderMoves(Move moves[], Board * board, int numMoves, int curDepth, int depth, int idx, bool white);
+	
 }
 #endif

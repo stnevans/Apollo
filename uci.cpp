@@ -202,6 +202,8 @@ void UCI::perft(Board * board, istringstream * parser){
 	printf("Nodes: %i\n" , numNodes);
 	printf("Took %fs. nps: %f.\n",newTime-time,numNodes/(newTime-time));
 }
+#include "bitboard.h"
+#include "move.h"
 bool UCI::loop(){
 	Board b;
 	BoardInfo info;
@@ -235,7 +237,7 @@ bool UCI::loop(){
 		}else if(token == "eval"){
 			printf("Current Position: %i\n",Eval::evaluate(&b));
 		}else if(token == "d"){
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nRook Pins: %llx\nBis Pins: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist,getRookAttacks(trailingZeroCount(b.currentBoard()->WhiteKingBB),b.currentBoard()->BlackPiecesBB)&b.currentBoard()->BlackRookBB,getBishopAttacks(trailingZeroCount(b.currentBoard()->BlackKingBB),b.currentBoard()->WhitePiecesBB)&(~(b.currentBoard()->WhiteBishopBB|b.currentBoard()->WhiteQueenBB)));
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist);
 		}
 	}
 	return true;

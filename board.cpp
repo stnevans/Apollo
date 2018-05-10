@@ -7,11 +7,11 @@
 #include "movegen.h"
 #include "move.h"
 #include "zobrist.h"
+#include <algorithm> //for std::max
 BoardInfo boards[MAX_MOVECOUNT] = {};
 
-//Current TODO.  Implement Zobrist Hashing, move gen, transpo table, faster version of memcpy,
+//Current TODO.  Speed up movegen (only generate legal? make capture generator?), Transpo table, Add various caches(is attacked, isCheck, ...)
 //TODO:
-//Transpo Table
 //Cache is attacked bitboard
 //If not, cache is attacked bits. Meaning we only check for a cache hit
 //Eventually maybe test for check by only analyzing last move.
@@ -19,9 +19,92 @@ BoardInfo boards[MAX_MOVECOUNT] = {};
 //http://chessprogramming.wikispaces.com/Selectivity
 //http://chessprogramming.wikispaces.com/Aspiration%20Windows
 
+//U64 unobstructedQueenMoves[] = {9313761861428380670,180779649147209727,289501704256556799,578721933553179903,1157442771889699071,2314886638996058367,4630054752952049919,9332167099941961983,4693051017133293315,9386102034266586887,325459994840334094,578862399937642268,1157444424410136376,2315169224285290352,4702396038313476064,9404792076610109376,2382695595002233605,4765391190004533002,9530782384287321621,614821794360007722,1157867469642086484,2387511058328678568,4775021017129017424,9550042029946290336,1227517888156599561,2455035776330041874,4910072647893521700,9820426766485563977,1266167049021314194,2460276499726510116,4920271520198053960,9840541936589512848,649930115027110161,1299860234365964834,2600000848492045380,5272058195805358472,10544115296394056209,2641485423861834786,5210912158452303940,10421541742416269448,361412783554236705,722826670915068482,1517430560419759236,3034580745374500872,6068881115283853584,12137481855085847073,5827939256702092354,11583539444389546116,287952221336838465,576187017162015362,1080597919557780484,2089419720071055368,4107063321064181776,8142350518772179232,16212923818971513409,13907045970195547266,18375536441101992321,18376667877509071362,18378650374858081284,18382614274322728968,18390542064695644176,18406396550208102432,18437825145767870784,18428906217826189953};
+int Board::staticExchange(Move m){
+	PieceType type;
+	U64 to = getSquare[to_sq(m)];
+	if((to & (boardInfo->WhitePawnBB | boardInfo->BlackPawnBB)) != 0){
+		type = PAWN;
+	}else if((to & (boardInfo->WhiteKnightBB | boardInfo->BlackKnightBB)) != 0){
+		type = KNIGHT;
+	}else if((to & (boardInfo->WhiteBishopBB | boardInfo->BlackBishopBB)) != 0){
+		type = BISHOP;
+	}else if((to & (boardInfo->WhiteRookBB | boardInfo->BlackRookBB)) != 0){
+		type = ROOK;
+	}else if((to & (boardInfo->WhiteQueenBB | boardInfo->BlackQueenBB)) != 0){
+		type = QUEEN;
+	}
+	return staticExchange(from_sq(m), to_sq(m), PieceMoved(m), type); 
+}
+//Copied off chessprogramming! 
+int seeValues[] = {100,300,300,500,900,999999};
+int Board::staticExchange(U8 from, U8 to, PieceType moving, PieceType captured){
+	int gain[32];
+	int d = 0;
+	U64 xrays = boardInfo->WhiteKnightBB | boardInfo->BlackKnightBB | boardInfo->WhiteBishopBB | boardInfo->BlackBishopBB | boardInfo->WhiteRookBB | boardInfo->BlackRookBB | boardInfo->WhiteQueenBB | boardInfo->BlackQueenBB;
+	U64 fromSquare = getSquare[from];
+	U64 attackTo = getIndexAttacks(currentBoard(), to);
+	U64 occupied = boardInfo->AllPiecesBB;
+	gain[d]  = seeValues[captured];
+	do {
+		U64 side;
+		if(((d % 2 != 0) && boardInfo->whiteToMove) || ((d % 2 == 0) && !boardInfo->whiteToMove)){
+			side = boardInfo->WhitePiecesBB;
+		}else{
+			side = boardInfo->BlackPiecesBB;
+		}
+		
+		d++;
+		gain[d] = seeValues[moving]-gain[d-1];
+		if( (-gain[d-1] > gain[d] ? -gain[d-1] : gain[d]) < 0){break;}
+		attackTo ^= fromSquare;
+		occupied ^= fromSquare;
+		if((fromSquare & xrays) != 0){
+			attackTo |= getXrayAttacks(currentBoard(), to, occupied);
+		}
+		fromSquare = 0;
+		PieceType type;
+		
+		U64 startLocs = 0;
+		if((attackTo & side & (boardInfo->WhitePawnBB | boardInfo->BlackPawnBB)) != 0){
+			type = PAWN;
+			startLocs = attackTo & side & (boardInfo->WhitePawnBB | boardInfo->BlackPawnBB);
+		}else if((attackTo & side & (boardInfo->WhiteKnightBB | boardInfo->BlackKnightBB)) != 0){
+			type = KNIGHT;
+			startLocs = attackTo & side & (boardInfo->WhiteKnightBB | boardInfo->BlackKnightBB);
+		}else if((attackTo & side & (boardInfo->WhiteBishopBB | boardInfo->BlackBishopBB)) != 0){
+			type = BISHOP;
+			startLocs = attackTo & side & (boardInfo->WhiteBishopBB | boardInfo->BlackBishopBB);
+		}else if((attackTo & side & (boardInfo->WhiteRookBB | boardInfo->BlackRookBB)) != 0){
+			type = ROOK;
+			startLocs = attackTo & side & (boardInfo->WhiteRookBB | boardInfo->BlackRookBB);
+		}else if((attackTo & side & (boardInfo->WhiteQueenBB | boardInfo->BlackQueenBB)) != 0){
+			type = QUEEN;
+			startLocs = attackTo & side & (boardInfo->WhiteQueenBB | boardInfo->BlackQueenBB);
+		}else if((attackTo & side & (boardInfo->WhiteKingBB | boardInfo->BlackKingBB)) != 0){
+			type = KING;
+			startLocs = attackTo & side & (boardInfo->WhiteKingBB| boardInfo->BlackKingBB);
+		}
+		moving=type;
+		fromSquare = lowestOneBit(startLocs);
+	}while(fromSquare != 0);
+	while(--d){
+		gain[d-1] = - ((-gain[d-1] > gain[d] ? -gain[d-1] : gain[d]));
+	}
+	return gain[0];
+}
+
+
+/*
+bool Board::isMoveCheck(Move m){
+	fastMakeMove(m);
+	bool result = legal();
+	undoMove();
+	return result;
+}*/
+
 bool validCache;
 bool isInCheckCache;
-
 int Board::currentSideMaterial(){
 	int KNIGHT = 300;
 	int BISHOP = 320;
@@ -312,7 +395,10 @@ void printMove1(Move m){
 	to[0] = arr[0];to[1]=arr[1];to[2]=arr[2];
 	printf("%s %s\n",from,to);
 }
-
+/*
+* Makes a move as quickly as possible. To do this, it ignores zobrist and castling variables.
+* If any speed increase, probably small
+*/
 void Board::fastMakeMove(Move move){
 	BoardInfo* newInfo = &boards[boardInfo->moveNumber+1];
 	memcpy(newInfo,boardInfo,sizeof(BoardInfo));
@@ -326,7 +412,7 @@ void Board::fastMakeMove(Move move){
 		U8 captureSquare = moveDest;
 		if(type_of(move) == ENPASSANT){
 			//The idea is moving up/down a row from the destination. 
-			captureSquare = (boardInfo->whiteToMove) ? (moveDest - 8) : (moveDest + 8); //TODO, this can't be right
+			captureSquare = (boardInfo->whiteToMove) ? (moveDest - 8) : (moveDest + 8); 
 			//newInfo->enPassantLoc=captureSquare;
 		}
 		U64 square = getSquare[captureSquare];
@@ -460,7 +546,7 @@ void Board::fastMakeMove(Move move){
 	}
 	newInfo->whiteToMove=!newInfo->whiteToMove;
 	updateSpecialBB(newInfo);
-	
+	validCache=false;
 }
 void Board::makeMove(Move move){
 	//TODO test this speed vs manually copying. No idea what's faster. also maybe *newInfo = *board Info

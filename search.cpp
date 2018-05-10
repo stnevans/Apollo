@@ -195,20 +195,22 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	int curEval = Eval::evaluate(board);
 	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
 		currentlyFollowingPv=false;
-		if(depth == 0){
+		if(depth <= 0){
 			pline->cmove = 0;
+		}else{
+			return curEval;
 		}
 		nodeCount++;
-		return curEval;
+		return quiesce(board,alpha,beta);
 	}
 	
 	//Hope to prune!
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
 		return beta;	
-	}
+	}	
 	
 	//Null Move
-	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 1){
+	/*if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 1){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
@@ -220,7 +222,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		board->undoMove();
 		canDoNullMove=true;
 		if(val >= beta){return beta;}
-	}
+	}*/
 
 	canDoNullMove=true;
 
@@ -251,9 +253,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		}
 		if(val > alpha){
 			alpha = val;
-				pline->argmove[0] = moves[i];
-				memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-				pline->cmove = line.cmove + 1;
+			pline->argmove[0] = moves[i];
+			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+			pline->cmove = line.cmove + 1;
 			alphaHits++;
 			bestMove = moves[i];
 		}
@@ -267,28 +269,33 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	return alpha;
 }
-
-int quiesce(Board * board, int alpha, int beta){
+//Ignoring in the pv for now.
+int Search::quiesce(Board * board, int alpha, int beta){
 	int curEval = Eval::evaluate(board);
+
 	if(curEval >= beta){
 		return beta;
 	}
-	if(alpha > curEval){
+	if(curEval > alpha){
 		alpha = curEval;
 	}
+	
+	//printf("%i %i\n",curEval, alpha);
+
 	Move moves[MAX_MOVES];
-	/*U8 moveCount = Movegen::getAllCaptures(board->currentBoard(),moves);
+	U8 moveCount = Movegen::getAllCaptures(board,moves);
 	for(int i = 0; i < moveCount; i++){
 		board->makeMove(moves[i]);
 		int score = -quiesce(board, -beta, -alpha);
 		board->undoMove();
-		if(curEval >= beta){
+		if(score >= beta){
 			return beta;
 		}
-		if(alpha > curEval){
+		if(alpha > score){
 			alpha = curEval;
 		}
-	}*/
+	}
+	return alpha;
 }
 Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
 	//if tt:probe(board) 

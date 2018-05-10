@@ -56,6 +56,9 @@ class Board{
 		bool isCheckmate();
 		int currentSideMaterial();
 		
+		int staticExchange(U8 from, U8 to, PieceType moving, PieceType captured);
+		int staticExchange(Move m);
+
 		std::string getFen();
 		Board& readFromFen(std::string& fen, BoardInfo* board);
 		
