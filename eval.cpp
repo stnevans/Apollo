@@ -43,7 +43,6 @@ int centralizationValue(U64 bb){
 	while(bb != 0){
 		U64 loc = trailingZeroCount(bb);
 		eval+=centralization[loc];
-		//printf("bb: %llx %llx %lli\n",bb,1LL<<loc, loc);
 		bb ^= ( U64(1LL << loc));
 	}
 	return eval;
@@ -54,7 +53,6 @@ int centralizationValue(U64 bb, int *endGame){
 	while(bb != 0){
 		U64 loc = trailingZeroCount(bb);
 		eval+=endGame[loc];
-		//printf("bb: %llx %llx %lli\n",bb,1LL<<loc, loc);
 		bb ^= ( U64(1LL << loc));
 	}
 	return eval;
