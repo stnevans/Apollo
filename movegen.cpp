@@ -90,7 +90,7 @@ U8 getAllLegalMoves(Board* b, Move list[]){
 		}
 	}else{
 		for (int i = 0; i < count; i++) {
-			if(mask & getSquare[from_sq(list[i])]){
+			if(mask & getSquare[from_sq(list[i])] || PieceMoved(list[i]) == KING){
 				b->fastMakeMove(list[i]);
 				if(b->legal()){
 					list[j++] = list[i];
