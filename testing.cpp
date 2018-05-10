@@ -71,7 +71,6 @@ int main(){
 	initBBUtils();
 	initBBMagic();
 	b.readFromFen(startFen,&bi);
-	Search::init();
 	
 	//printf("%s %i\n", b.getFen().c_str(), b.currentBoard()->moveNumber);
 

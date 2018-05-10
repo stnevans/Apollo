@@ -17,12 +17,305 @@ Search::Config* cfg;
 void Search::setConfig(Search::Config * config){
 	cfg=config;
 }
-void Search::init(){
-	
-}
+
 constexpr int futilitySize = 4; 
 int futilityMoves[] = {0,150,200,400,600};
 
+/*
+* Returns the best move according to our wonderful engine. A valid config is assumed to be set previously.
+*/
+Move Search::getBestMove(Board * board){
+	calculateMovetime(board);
+	return iterativeDeepening(board);
+}
+
+
+
+/*
+* If wtime or btime are being used, calculates the time to use on the current move.
+* If infinite search is used, the movetime is INT_MAX. 
+*/ 
+void Search::calculateMovetime(Board* b){
+	Config * config = cfg;
+	if(config->depth != 0){
+		config->movetime = INT_MAX;
+	}
+	if(config->infinite){
+		config->movetime=INT_MAX;
+	}
+	BoardInfo * info = b->currentBoard();
+	int moveNum = info->moveNumber;
+	int toMoveTime = 0;
+	if(config->wTime != 0 || config->bTime != 0){
+		if(b->currentBoard()->whiteToMove){
+			toMoveTime = config->wTime;
+		}else{
+			toMoveTime = config->bTime;
+		}
+		int expectedMoves = 0;
+		if(moveNum < 10){
+			expectedMoves=50;
+		}else if(moveNum < 30){
+			expectedMoves = 65;
+		}else if(moveNum < 50){
+			expectedMoves = 80;
+		}else if(moveNum < 70){
+			expectedMoves = 90;
+		}else if(moveNum < 100){
+			expectedMoves = 110;
+		}else if(moveNum < 200){
+			expectedMoves = 210;
+		}else{
+			expectedMoves = 320;
+		}	
+		int movesToGo = expectedMoves-moveNum;
+		config->movetime = toMoveTime/movesToGo;
+	}
+	cfg->endTime = get_wall_time()+((cfg->movetime)/1000.0);
+}
+//Used for move ordering and getting pv
+Search::LINE lastPv;
+
+//Used for move ordering
+U64 whiteHeuristic[64][64];
+U64 blackHeuristic[64][64];
+
+int startDepth=0; //Used to determine how long until we hit horizon in an alphabeta search
+double endTime; //Used to determine when to leave deepening
+int score = 0; //Used to communicate the score of the best move returned by ab search.
+
+U64 nodeCount = 0; //Just nodes where eval is called
+
+bool currentlyFollowingPv;
+
+/*
+* The main search function. 
+*/
+Move Search::iterativeDeepening(Board * board){
+	
+	endTime = cfg->endTime;
+	char buffer[100];
+	Move bestMove=-1;
+	double startTime = get_wall_time();
+	
+	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
+	for(int i = 0; i < 64; i++){
+		for(int j = 0; j < 64; j++){
+			whiteHeuristic[i][j]=0;
+			blackHeuristic[i][j]=0;
+		}
+	}
+	for(int depth = 1; depth < 200; depth++){
+		nodeCount = 0;
+		LINE line;
+		
+		currentlyFollowingPv = true;
+		
+		Move curMove = getAlphabetaMove(board,depth,&line);
+
+
+		if(get_wall_time() >= endTime){
+			return bestMove;
+		}
+		bestMove = curMove;
+		
+		//Print info about the search we just did
+		printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+		for(int j = 0; j < line.cmove; j++){
+			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
+		}
+		printf("\n");
+		
+		
+		if(cfg->depth!=0){
+			if(cfg->depth <= depth){
+				return bestMove;
+			}
+		}
+		
+		lastPv = line;
+		//Check uci stop command?
+	}
+	cfg->movetime=0;
+	cfg->depth=0;
+	cfg->wTime = 0;
+	cfg->bTime = 0;
+	
+	return bestMove;
+}
+Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
+	startDepth = depth;
+	Move moves[MAX_MOVES];
+	char buffer[100] ={};
+	U8 moveCount = getAllLegalMoves(board,moves);
+	
+	//If there's only one move, play it.
+	if(moveCount == 1){
+		pline->cmove = 1;
+		pline->argmove[0] = moves[0];
+		return moves[0];
+	}
+	
+	
+	int max = INT_MIN;
+	Move bestMove;
+	LINE line;
+	//orderMoves(moves,board,moveCount,startDepth-depth);
+	bool whiteToMove = board->currentBoard()->whiteToMove;
+
+	for(int i = 0; i < moveCount; i++){
+		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
+
+		board->makeMove(moves[i]);
+		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth-1,&line);
+		board->undoMove();
+		if(get_wall_time() >= endTime){
+			return 0;
+		}
+		if(val > max){
+			max = val;
+			bestMove = moves[i];
+			pline->argmove[0] = moves[i];
+            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+            pline->cmove = line.cmove + 1;
+		}
+	}
+	score = max;
+	return bestMove;
+}
+
+
+int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
+	LINE line;
+	int alphaHits = 0;
+	Move bestMove;
+	
+	int curEval = Eval::evaluate(board);
+	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
+		currentlyFollowingPv=false;
+		if(depth == 0){
+			pline->cmove = 0;
+		}
+		nodeCount++;
+		return curEval;
+	}
+	//printf("alpha: %i beta: %i\n", alpha, beta);
+	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
+		//printf("Eval: %i A: %i B: %i\n", curEval,alpha,beta);
+		return beta;	
+	}
+	Move moves[MAX_MOVES];
+	U8 moveCount = getAllLegalMoves(board,moves);
+	bool whiteToMove = board->currentBoard()->whiteToMove;
+	for(int i = 0; i < moveCount; i++){
+		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
+
+		//if(isMoveFutile(board,,depth,i,moves[i],alpha,beta,curEval)){
+		//	continue;
+		//}
+
+		board->makeMove(moves[i]);
+		int val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
+		board->undoMove();
+		
+		//Beta Cutoff
+		if(val >= beta){
+			//The move must be premty good.
+			if(whiteToMove){
+				whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
+			}else{
+				blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
+			}
+			return beta;
+		}
+		if(val > alpha){
+			alpha = val;
+            pline->argmove[0] = moves[i];
+            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+            pline->cmove = line.cmove + 1;
+			alphaHits++;
+			bestMove = moves[i];
+		}
+	}
+	if(alphaHits != 0){
+		if(whiteToMove){
+				whiteHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
+		}else{
+			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
+		}
+	}
+	return alpha;
+}
+
+int quiesce(Board * board, int alpha, int beta){
+	int curEval = Eval::evaluate(board);
+	if(curEval >= beta){
+		return beta;
+	}
+	if(alpha > curEval){
+		alpha = curEval;
+	}
+	Move moves[MAX_MOVES];
+	/*U8 moveCount = Movegen::getAllCaptures(board->currentBoard(),moves);
+	for(int i = 0; i < moveCount; i++){
+		board->makeMove(moves[i]);
+		int score = -quiesce(board, -beta, -alpha);
+		board->undoMove();
+		if(curEval >= beta){
+			return beta;
+		}
+		if(alpha > curEval){
+			alpha = curEval;
+		}
+	}*/
+}
+Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
+	//if tt:probe(board) 
+	
+	//Order by pv move without testing if we are in the pv.
+	if(currentlyFollowingPv && depth > 1){
+		for(int i = idx; i < numMoves; i++){
+			if(lastPv.argmove[curDepthSearched] == moves[i]){
+				Move temp = moves[i];
+				moves[i] = moves[idx];
+				moves[idx] = temp;
+			}
+		}
+	}
+	if(whiteToMove){
+		int max = whiteHeuristic[from_sq(idx)][to_sq(idx)];
+		int maxIdx = idx;
+		for(int i = idx+1; i < numMoves; i++){
+			if(whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
+				max = whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])];
+				maxIdx = i;
+			}
+		}
+		//Can be removed?
+		if(maxIdx > idx){
+			Move temp = moves[maxIdx];
+			moves[maxIdx] = moves[idx];
+			moves[idx] = temp;
+		}
+	}else{
+		int max = blackHeuristic[from_sq(idx)][to_sq(idx)];
+		int maxIdx = idx;
+		for(int i = idx+1; i < numMoves; i++){
+			if(blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
+				max = blackHeuristic[from_sq(moves[i])][to_sq(moves[i])];
+				maxIdx = i;
+			}
+		}
+		//Can be removed?
+		if(maxIdx > idx){
+			Move temp = moves[maxIdx];
+			moves[maxIdx] = moves[idx];
+			moves[idx] = temp;
+		}
+	}
+	
+	return moves;
+}
 
 /*
 * Called before movegenning. Basically tests if it's feasible for any move to make it bad enough that the value is below beta.
@@ -84,229 +377,4 @@ bool Search::isMoveFutile(Board * b, int depthSearched, int depthToGo, int moves
 	}
 	int futilityValue = futilityMoves[depthToGo];
 	return curEval+futilityValue < alpha;
-}
-//TODO struct line{move,eval}
-int minimaxHelper(Board * b, int depth){
-	if(depth == 0 || b->isCheckmate() || b->isDraw()){return Eval::evaluate(b);}
-	Move moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(b,moves);
-	int max = INT_MIN;
-	for(int i = 0; i < moveCount; i++){
-		b->makeMove(moves[i]);
-		int val = -minimaxHelper(b,depth-1);
-		b->undoMove();
-		if(val > max){
-			max = val;
-		}
-	}
-	return max;	
-}
-Move Search::getMinimaxMove(Board* board){
-	Move moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
-	int max = INT_MIN;
-	Move bestMove;
-	for(int i = 0; i < moveCount; i++){
-		board->makeMove(moves[i]);
-		int val = -minimaxHelper(board,cfg->depth-1);
-		board->undoMove();
-		if(val > max){
-			max = val;
-			bestMove = moves[i];
-		}
-	}
-	return bestMove;
-}
-int startDepth=0;
-int countForReturn=0;
-double endTime;//alpha is lower bound, beta upper.
-int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
-	LINE line;
-
-	int curEval = Eval::evaluate(board);
-	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
-		if(depth == 0){
-			pline->cmove = 0;
-		}
-		return curEval;
-	}
-	//printf("alpha: %i beta: %i\n", alpha, beta);
-	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
-		//printf("Eval: %i A: %i B: %i\n", curEval,alpha,beta);
-		return beta;	
-	}
-	Move moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
-	orderMoves(moves,board,moveCount,startDepth-depth);
-
-	for(int i = 0; i < moveCount; i++){
-		//if(isMoveFutile(board,,depth,i,moves[i],alpha,beta,curEval)){
-		//	continue;
-		//}
-		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
-		board->undoMove();
-		if(val >= beta){
-			return beta;
-		}
-		if(val > alpha){
-			alpha = val;
-            pline->argmove[0] = moves[i];
-            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-            pline->cmove = line.cmove + 1;
-		}
-	}
-	return alpha;
-}
-
-int score = 0;
-Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
-	startDepth = depth;
-	Move moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
-	int max = INT_MIN;
-	Move bestMove;
-	LINE line;
-	orderMoves(moves,board,moveCount,startDepth-depth);
-	
-	char buffer[100] ={};
-	for(int i = 0; i < moveCount; i++){
-		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth-1,&line);
-		board->undoMove();
-		if(get_wall_time() >= endTime){
-			return 0;
-		}
-		if(val > max){
-			max = val;
-			bestMove = moves[i];
-			pline->argmove[0] = moves[i];
-            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-            pline->cmove = line.cmove + 1;
-		}
-	}
-	score = max;
-	return bestMove;
-}
-
-int quiesce(Board * board, int alpha, int beta){
-	int curEval = Eval::evaluate(board);
-	if(curEval >= beta){
-		return beta;
-	}
-	if(alpha > curEval){
-		alpha = curEval;
-	}
-	Move moves[MAX_MOVES];
-	/*U8 moveCount = Movegen::getAllCaptures(board->currentBoard(),moves);
-	for(int i = 0; i < moveCount; i++){
-		board->makeMove(moves[i]);
-		int score = -quiesce(board, -beta, -alpha);
-		board->undoMove();
-		if(curEval >= beta){
-			return beta;
-		}
-		if(alpha > curEval){
-			alpha = curEval;
-		}
-	}*/
-}
-/*
-* If wtime or btime are being used, calculates the time to use on the current move.
-* If infinite search is used, the movetime is INT_MAX. 
-*/ 
-void Search::calculateMovetime(Board* b){
-	Config * config = cfg;
-	if(config->depth != 0){
-		config->movetime = INT_MAX;
-	}
-	if(config->infinite){
-		config->movetime=INT_MAX;
-	}
-	BoardInfo * info = b->currentBoard();
-	int moveNum = info->moveNumber;
-	int toMoveTime = 0;
-	if(config->wTime != 0 || config->bTime != 0){
-		if(b->currentBoard()->whiteToMove){
-			toMoveTime = config->wTime;
-		}else{
-			toMoveTime = config->bTime;
-		}
-		int expectedMoves = 0;
-		if(moveNum < 10){
-			expectedMoves=50;
-		}else if(moveNum < 30){
-			expectedMoves = 65;
-		}else if(moveNum < 50){
-			expectedMoves = 80;
-		}else if(moveNum < 70){
-			expectedMoves = 90;
-		}else if(moveNum < 100){
-			expectedMoves = 110;
-		}else if(moveNum < 200){
-			expectedMoves = 210;
-		}else{
-			expectedMoves = 320;
-		}	
-		int movesToGo = expectedMoves-moveNum;
-		config->movetime = toMoveTime/movesToGo;
-	}
-	
-}
-Search::LINE lastPv;
-Move Search::iterativeDeepening(Board * board){
-	cfg->endTime = get_wall_time()+((cfg->movetime)/1000.0);
-	endTime = cfg->endTime;
-	char buffer[100];
-	Move bestMove=-1;
-	double startTime = get_wall_time();
-	printf("time: %f\n",startTime);
-	for(int depth = 1; depth < 200; depth++){
-		LINE line;
-		Move curMove = getAlphabetaMove(board,depth,&line);
-		if(get_wall_time() >= endTime){
-			printf("time: %f\n",get_wall_time());
-			return bestMove;
-		}
-		bestMove = curMove;
-		printf("info depth %i score cp %i time %i pv", depth, score, (int) ((get_wall_time() - startTime)*1000));
-		for(int j = 0; j < line.cmove; j++){
-			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
-		}
-		printf("\n");
-		if(cfg->depth!=0){
-			if(cfg->depth <= depth){
-				return bestMove;
-			}
-		}
-		lastPv = line;
-		//Check uci stop command?
-	}
-	cfg->movetime=0;
-	cfg->depth=0;
-	cfg->wTime = 0;
-	cfg->bTime = 0;
-	
-	return bestMove;
-}
-Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDepth){
-	Move* unordered = (Move *) malloc(sizeof(Move)*numMoves);
-	char buffer[199];
-	memcpy(unordered,moves,numMoves*sizeof(Move));
-	//if tt:probe(board) 
-	
-	//Order by pv move without testing if we are in the pv.
-	for(int i = 0; i < numMoves; i++){
-		if(lastPv.argmove[curDepth] == unordered[i]){
-			Move temp = unordered[0];
-			moves[0] = unordered[i];
-			moves[i] = temp;
-		}
-	}
-	free(unordered);
-	return moves;
-}
-Move Search::getBestMove(Board * board){
-	calculateMovetime(board);
-	return iterativeDeepening(board);
 }
