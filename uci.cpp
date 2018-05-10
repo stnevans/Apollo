@@ -213,7 +213,6 @@ bool UCI::loop(){
 		getline(cin,cmd);
 		istringstream parser(cmd);
 		parser >> skipws >> token;
-
 		if(token == "quit"){
 			return false;
 		}

@@ -135,11 +135,12 @@ bool Board::isDraw(){
 		}
 	}
 	int rep = 0;
-	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2 ; i+=2){
+	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2; i++){
 		if(boards[i].zobrist == boardInfo->zobrist){
 			rep++;
 		}
-		if(rep == 2){
+		//printf("%llx\n",boards[i].zobrist);
+		if(rep >= 2){
 			return true;
 		}
 	}

@@ -210,19 +210,19 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}	
 	
 	//Null Move
-	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 1){
+	/*if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 1){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
-		int reduction = 2;
+		int reduction = 3;
 		if(depth > 5){
-			reduction = 3;
+			reduction = 4;
 		}
 		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
 		board->undoMove();
 		canDoNullMove=true;
 		if(val >= beta){return beta;}
-	}
+	}*/
 
 	canDoNullMove=true;
 

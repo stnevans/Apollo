@@ -48,6 +48,20 @@ int centralizationValue(U64 bb){
 	}
 	return eval;
 }
+		   
+int centralizationValue(U64 bb, int *endGame){
+	int eval = 0;
+	while(bb != 0){
+		U64 loc = trailingZeroCount(bb);
+		eval+=endGame[loc];
+		//printf("bb: %llx %llx %lli\n",bb,1LL<<loc, loc);
+		bb ^= ( U64(1LL << loc));
+	}
+	return eval;
+}
+
+			   
+			   
 int Eval::basicEvaluate(Board * b){
 	if(b->isDraw()){
 		return 0;
@@ -87,8 +101,8 @@ int Eval::basicEvaluate(Board * b){
 	//Centralization of pieces
 	int totalMaterial = b->totalMaterial();
 	if(totalMaterial <= 1400){
-		eval+=whiteEndgame[whitePawns];
-		eval-=blackEndgame[blackPawns];
+		eval+=centralizationValue(whitePawns);
+		eval-=centralizationValue(blackPawns);
 	}else{
 		eval+=centralizationValue(whitePawns);
 		eval-=centralizationValue(blackPawns);
