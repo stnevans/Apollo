@@ -55,7 +55,8 @@ class Board{
 		bool legal();
 		bool isCheckmate();
 		int currentSideMaterial();
-		
+		int totalMaterial();
+
 		int staticExchange(U8 from, U8 to, PieceType moving, PieceType captured);
 		int staticExchange(Move m);
 

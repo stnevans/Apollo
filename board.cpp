@@ -116,6 +116,16 @@ int Board::currentSideMaterial(){
 		return popcnt(boardInfo->BlackKnightBB)*KNIGHT+popcnt(boardInfo->BlackRookBB)*ROOK+popcnt(boardInfo->BlackBishopBB)*BISHOP+popcnt(boardInfo->BlackQueenBB)*QUEEN;
 	}
 }
+
+int Board::totalMaterial(){
+	int KNIGHT = 300;
+	int BISHOP = 320;
+	int ROOK = 500;
+	int QUEEN = 960;
+	return popcnt(boardInfo->WhiteKnightBB)*KNIGHT+popcnt(boardInfo->WhiteRookBB)*ROOK+popcnt(boardInfo->WhiteBishopBB)*BISHOP+popcnt(boardInfo->WhiteQueenBB)*QUEEN + popcnt(boardInfo->BlackKnightBB)*KNIGHT+popcnt(boardInfo->BlackRookBB)*ROOK+popcnt(boardInfo->BlackBishopBB)*BISHOP+popcnt(boardInfo->BlackQueenBB)*QUEEN;
+}
+
+
 bool Board::isDraw(){
 	Move moves[MAX_MOVES];
 	if(getAllLegalMoves(this, moves) == 0){

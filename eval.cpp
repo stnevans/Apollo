@@ -14,9 +14,30 @@ int centralization[] = {0,0,0,0,0,0,0,0,
 						0,2,2,2,2,2,2,0,
 						0,0,0,0,0,0,0,0};
 					   
-//int materialEvalCache = -1;
-//U8 materialCount;
+int blackEndgame[] = {  0,0,0,0,0,0,0,0
+						50,50,50,50,50,50,50,50,
+						15,15,20,20,20,20,15,25,
+						10,10,20,30,30,20,10,10,
+						5,5,10,25,25,10,5,5,
+						0,0,0,20,20,0,0,0
+						0,0,0,0,0,0,0,0
+						0,0,0,0,0,0,0,0
+						0,0,0,0,0,0,0,0
+}
 
+int whiteEndgame[] = {  0,0,0,0,0,0,0,0
+						0,0,0,0,0,0,0,0
+						0,0,0,0,0,0,0,0
+						0,0,0,20,20,0,0,0
+						5,5,10,25,25,10,5,5,
+						10,10,20,30,30,20,10,10,
+						15,15,20,20,20,20,15,25,
+						50,50,50,50,50,50,50,50,
+						0,0,0,0,0,0,0,0						
+}
+
+
+					   
 int centralizationValue(U64 bb){
 	int eval = 0;
 	while(bb != 0){
@@ -64,8 +85,14 @@ int Eval::basicEvaluate(Board * b){
 	eval+=naivePieceValue[QUEEN]*(popcnt(whiteQueens)-popcnt(blackQueens));
 	
 	//Centralization of pieces
-	eval+=centralizationValue(whitePawns);
-	eval-=centralizationValue(blackPawns);
+	int material = b->totalMaterial();
+	if(totalMaterial <= 1400){
+		eval+=whiteEndgame(whitePawns);
+		eval-=blackEndgame(blackPawns);
+	}else{
+		eval+=centralizationValue(whitePawns);
+		eval-=centralizationValue(blackPawns);
+	}
 	eval+=centralizationValue(whiteKnights);
 	eval-=centralizationValue(blackKnights);
 	eval+=centralizationValue(whiteBishops);
@@ -144,6 +171,7 @@ int Eval::basicEvaluate(Board * b){
 	}
 	
 	//bishops
+	
 	
 	if(info->whiteToMove){
 		return eval; 
