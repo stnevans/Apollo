@@ -85,10 +85,10 @@ int Eval::basicEvaluate(Board * b){
 	eval+=naivePieceValue[QUEEN]*(popcnt(whiteQueens)-popcnt(blackQueens));
 	
 	//Centralization of pieces
-	int material = b->totalMaterial();
+	int totalMaterial = b->totalMaterial();
 	if(totalMaterial <= 1400){
-		eval+=whiteEndgame(whitePawns);
-		eval-=blackEndgame(blackPawns);
+		eval+=whiteEndgame[whitePawns];
+		eval-=blackEndgame[blackPawns];
 	}else{
 		eval+=centralizationValue(whitePawns);
 		eval-=centralizationValue(blackPawns);
