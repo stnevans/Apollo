@@ -238,7 +238,16 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 
 		board->makeMove(moves[i]);
 		int val;
-		val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
+		
+		//Attempt at LMR
+		if(i < moveCount/4){
+			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
+		}else if(i < 3*moveCount/4) {
+			val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
+		}else{
+			val = -alphabetaHelper(board, -beta, -alpha, depth-3, &line);
+			
+		}
 		board->undoMove();
 		
 		//Beta Cutoff
