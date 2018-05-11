@@ -21,6 +21,15 @@ void Search::setConfig(Search::Config * config){
 constexpr int futilitySize = 4; 
 int futilityMoves[] = {0,150,200,400,600};
 
+bool inline isCapture(BoardInfo * b, Move m){
+	//must be prior to playing move
+	if(b->whiteToMove){
+		return ((getSquare[to_sq(m)] & b->BlackPiecesBB) != 0);
+	}else{
+		return ((getSquare[to_sq(m)] & b->WhitePiecesBB) != 0);
+	}
+}
+
 /*
 * Returns the best move according to our wonderful engine. A valid config is assumed to be set previously.
 */
@@ -145,46 +154,7 @@ Move Search::iterativeDeepening(Board * board){
 	cfg->bTime = 0;
 	
 	return bestMove;
-}/*
-Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
-	startDepth = depth;
-	Move moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
-	
-	//If there's only one move, play it.
-	if(moveCount == 1){
-		pline->cmove = 1;
-		pline->argmove[0] = moves[0];
-		return moves[0];
-	}
-	
-	
-	int max = INT_MIN;
-	Move bestMove;
-	LINE line;
-	bool whiteToMove = board->currentBoard()->whiteToMove;
-
-	for(int i = 0; i < moveCount; i++){
-		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
-		//Add aspiration window.
-		board->makeMove(moves[i]);
-		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth-1,&line);
-		//int val = -alphabetaHelper(board,-150,-100,depth-1,&line);
-		board->undoMove();
-		if(get_wall_time() >= endTime){
-			return 0;
-		}
-		if(val > max){
-			max = val;
-			bestMove = moves[i];
-			pline->argmove[0] = moves[i];
-            memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-            pline->cmove = line.cmove + 1;
-		}
-	}
-	score = max;
-	return bestMove;
-}*/
+}
 
 
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
@@ -193,7 +163,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	Move bestMove;
 	
 	int curEval = Eval::evaluate(board);
-	//printf("a: %i\tb %i\te %i\td %i\n",alpha,beta,curEval,depth);
 
 	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
 		currentlyFollowingPv=false;
@@ -238,10 +207,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
 
-		//Causing windows program to crash
-		//if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
-		//	continue;
-		//}
+		if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
+			continue;
+		}
 
 		board->makeMove(moves[i]);
 		int val;
@@ -410,15 +378,8 @@ bool Search::isMoveFutile(Board * b, int depthSearched, int depthToGo, int moves
 		}
 	}
 	//Capture moves are not futile:
-	if(boardInfo->whiteToMove){
-		if(getSquare[to_sq(move)] & boardInfo->BlackPiecesBB != 0){
-			return false;
-		}
-	}else{
-		if(getSquare[to_sq(move)] & boardInfo->WhitePiecesBB != 0){
-			return false;
-		}
-	}
 	int futilityValue = futilityMoves[depthToGo];
-	return curEval+futilityValue+b->staticExchange(move) < alpha;
+
+	if(isCapture(boardInfo,move)){return b->staticExchange(move)+curEval+futilityValue < alpha;}
+	return (curEval+futilityValue) < alpha;
 }

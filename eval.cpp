@@ -131,10 +131,10 @@ int Eval::basicEvaluate(Board * b){
 	
 	//Isolated Pawns 
 	for(int i = FILE_B; i < FILE_G; i++){
-		if(((whitePawns & maskFile[i]) !=0) && (whitePawns&maskFile[i-1] == 0) && ((whitePawns&maskFile[i+1]) == 0)){
+		if(((whitePawns & maskFile[i]) !=0) && ((whitePawns&maskFile[i-1]) == 0) && ((whitePawns&maskFile[i+1]) == 0)){
 			eval-=ISOLATED_PAWNS_PENATLY*(popcnt(whitePawns&maskFile[i]));
 		}
-		if((blackPawns & maskFile[i] !=0) && (blackPawns&maskFile[i-1] == 0) && ((blackPawns&maskFile[i+1]) == 0)){
+		if(((blackPawns & maskFile[i]) !=0) && ((blackPawns&maskFile[i-1]) == 0) && ((blackPawns&maskFile[i+1]) == 0)){
 			eval+=ISOLATED_PAWNS_PENATLY*(popcnt(blackPawns&maskFile[i])); 
 		}
 	}
@@ -142,26 +142,26 @@ int Eval::basicEvaluate(Board * b){
 	
 	//Passed pawns
 	for(int i = FILE_B; i < FILE_G; i++){
-		if(((whitePawns & maskFile[i]) !=0) && (blackPawns&maskFile[i-1] == 0) && ((blackPawns&maskFile[i+1]) == 0)){
+		if(((whitePawns & maskFile[i]) !=0) && ((blackPawns&maskFile[i-1]) == 0) && ((blackPawns&maskFile[i+1]) == 0)){
 			eval+=PASSED_PAWN_BONUS;
 		}
-		if((blackPawns & maskFile[i] !=0) && (whitePawns&maskFile[i-1] == 0) && ((whitePawns&maskFile[i+1]) == 0)){
+		if(((blackPawns & maskFile[i]) !=0) && ((whitePawns&maskFile[i-1]) == 0) && ((whitePawns&maskFile[i+1]) == 0)){
 			eval-=PASSED_PAWN_BONUS;
 		}
 	}
 	//Passed a pawns
-	if(((whitePawns & maskFile[FILE_A]) !=0) && (blackPawns&maskFile[FILE_B] == 0)){
+	if((((whitePawns & maskFile[FILE_A])) !=0) && ((blackPawns&maskFile[FILE_B]) == 0)){
 		eval+=PASSED_PAWN_BONUS;
 	}
-	if((blackPawns & maskFile[FILE_A] !=0) && ((whitePawns&maskFile[FILE_B]) == 0)){
+	if(((blackPawns & maskFile[FILE_A]) !=0) && ((whitePawns&maskFile[FILE_B]) == 0)){
 		eval-=PASSED_PAWN_BONUS;
 	}
 	
 	//Passed h pawns
-	if(((whitePawns & maskFile[FILE_H]) !=0) && (blackPawns&maskFile[FILE_G] == 0)){
+	if(((whitePawns & maskFile[FILE_H]) !=0) && ((blackPawns&maskFile[FILE_G]) == 0)){
 		eval+=PASSED_PAWN_BONUS;
 	}
-	if((blackPawns & maskFile[FILE_H] !=0) && ((whitePawns&maskFile[FILE_G]) == 0)){
+	if(((blackPawns & maskFile[FILE_H]) !=0) && ((whitePawns&maskFile[FILE_G]) == 0)){
 		eval-=PASSED_PAWN_BONUS;
 	}
 	
@@ -182,7 +182,7 @@ int Eval::basicEvaluate(Board * b){
 		}
 		if(((blackRooks| blackQueens) & maskFile[i]) != 0){
 			if((blackPawns & maskFile[i]) == 0){
-				if(whitePawns & maskFile[i] == 0){
+				if((whitePawns & maskFile[i]) == 0){
 					eval-=OPEN_FILE_VALUE;
 				}else{
 					eval-=SEMI_OPEN_FILE_VALUE;
