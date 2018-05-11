@@ -107,8 +107,8 @@ int Eval::basicEvaluate(Board * b){
 		eval+=centralizationValue(whitePawns,whitePawnEndgame);
 		eval-=centralizationValue(blackPawns,blackPawnEndgame);
 		if(whitePawns == 0LL && blackPawns == 0LL){
-			//eval+=noPawnKingSquare[trailingZeroCount(whiteKings)];
-			//eval-=noPawnKingSquare[trailingZeroCount(blackKings)];
+			eval+=noPawnKingSquare[trailingZeroCount(whiteKings)];
+			eval-=noPawnKingSquare[trailingZeroCount(blackKings)];
 		}
 	}else{
 		eval+=centralizationValue(whitePawns);
