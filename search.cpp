@@ -108,12 +108,12 @@ Move Search::iterativeDeepening(Board * board){
 	}
 	for(int depth = 1; depth < 200; depth++){
 		nodeCount = 0;
-		LINE line;		
+		LINE line;
 		currentlyFollowingPv = true;
 		canDoNullMove = true;
-		
-		Move curMove = getAlphabetaMove(board,depth,&line);
-
+		//Move curMove = getAlphabetaMove(board, depth, &line);
+		Move curMove = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+		curMove = line.argmove[0];
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
@@ -145,7 +145,7 @@ Move Search::iterativeDeepening(Board * board){
 	cfg->bTime = 0;
 	
 	return bestMove;
-}
+}/*
 Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
 	startDepth = depth;
 	Move moves[MAX_MOVES];
@@ -166,9 +166,10 @@ Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
 
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
-
+		//Add aspiration window.
 		board->makeMove(moves[i]);
 		int val = -alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth-1,&line);
+		//int val = -alphabetaHelper(board,-150,-100,depth-1,&line);
 		board->undoMove();
 		if(get_wall_time() >= endTime){
 			return 0;
@@ -183,7 +184,7 @@ Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
 	}
 	score = max;
 	return bestMove;
-}
+}*/
 
 
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
@@ -192,6 +193,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	Move bestMove;
 	
 	int curEval = Eval::evaluate(board);
+	//printf("a: %i\tb %i\te %i\td %i\n",alpha,beta,curEval,depth);
+
 	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
@@ -203,13 +206,16 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		return quiesce(board,alpha,beta);
 	}
 	
+	if(get_wall_time() >= endTime){
+		return INT_MIN;
+	}
 	//Hope to prune!
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
 		return beta;
-	}	
+	}
 	
 	//Null Move
-	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 1){
+	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 3){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
@@ -240,7 +246,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		int val;
 		
 		//Attempt at LMR
-		if(i < moveCount/4){
+		
+		if(i < moveCount/4 || depth < 3){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
 		}else if(i < 3*moveCount/4) {
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
