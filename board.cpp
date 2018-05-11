@@ -349,6 +349,9 @@ std::string Board::getFen(){
   if(boardInfo->blackQueenCastle){
 	  ss << 'q';
   }
+  if(!(boardInfo->blackQueenCastle && boardInfo->blackKingCastle && boardInfo->whiteQueenCastle && boardInfo->whiteKingCastle)){
+	  ss<< '-';
+  }
   ss << " ";
   ss << getAlgebraicPos(boardInfo->enPassantLoc);
   ss << " ";

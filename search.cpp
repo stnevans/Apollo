@@ -120,6 +120,7 @@ Move Search::iterativeDeepening(Board * board){
 		bestMove = curMove;
 		
 		//Print info about the search we just did
+		//Not really the true nps.
 		if(!board->isCheckmate()){
 			printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}
@@ -230,9 +231,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
 
-		if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
-			continue;
-		}
+		//Causing windows program to crash
+		//if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
+		//	continue;
+		//}
 
 		board->makeMove(moves[i]);
 		int val;

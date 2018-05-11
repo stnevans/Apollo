@@ -14,7 +14,7 @@ int centralization[] = {0,0,0,0,0,0,0,0,
 						0,2,2,2,2,2,2,0,
 						0,0,0,0,0,0,0,0};
 					   
-int blackEndgame[] = {  0,0,0,0,0,0,0,0,
+int blackPawnEndgame[] = {  0,0,0,0,0,0,0,0,
 						50,50,50,50,50,50,50,50,
 						15,15,20,20,20,20,15,25,
 						10,10,20,30,30,20,10,10,
@@ -22,11 +22,9 @@ int blackEndgame[] = {  0,0,0,0,0,0,0,0,
 						0,0,0,20,20,0,0,0,
 						0,0,0,0,0,0,0,0,
 						0,0,0,0,0,0,0,0,
-						0,0,0,0,0,0,0,0
 };
 
-int whiteEndgame[] = {  0,0,0,0,0,0,0,0,
-						0,0,0,0,0,0,0,0,
+int whitePawnEndgame[] = { 				0,0,0,0,0,0,0,0,
 						0,0,0,0,0,0,0,0,
 						0,0,0,20,20,0,0,0,
 						5,5,10,25,25,10,5,5,
@@ -51,7 +49,7 @@ int centralizationValue(U64 bb){
 int centralizationValue(U64 bb, int *endGame){
 	int eval = 0;
 	while(bb != 0){
-		U64 loc = trailingZeroCount(bb);
+		U8 loc = trailingZeroCount(bb);
 		eval+=endGame[loc];
 		bb ^= ( U64(1LL << loc));
 	}
@@ -99,8 +97,8 @@ int Eval::basicEvaluate(Board * b){
 	//Centralization of pieces
 	int totalMaterial = b->totalMaterial();
 	if(totalMaterial <= 1400){
-		eval+=centralizationValue(whitePawns);
-		eval-=centralizationValue(blackPawns);
+		eval+=centralizationValue(whitePawns,whitePawnEndgame);
+		eval-=centralizationValue(blackPawns,blackPawnEndgame);
 	}else{
 		eval+=centralizationValue(whitePawns);
 		eval-=centralizationValue(blackPawns);
