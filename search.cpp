@@ -200,6 +200,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		if(depth <= 0){
 			pline->cmove = 0;
 		}else{
+			score = curEval;
 			return curEval;
 		}
 		nodeCount++;
@@ -215,7 +216,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	
 	//Null Move
-	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() && !board->isOwnKingInCheck() && depth > 3){
+	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck() && depth > 3){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
@@ -245,15 +246,13 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		board->makeMove(moves[i]);
 		int val;
 		
-		//Attempt at LMR
-		
-		if(i < moveCount/4 || depth < 3){
+		//Attempt at LMR -- no LMR in endgame because moves that appear suboptimal are often better than expected.
+		if(i < moveCount/4 || depth < 3 || board->currentSideMaterial() < 1000){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
 		}else if(i < 3*moveCount/4) {
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
 		}else{
-			val = -alphabetaHelper(board, -beta, -alpha, depth-3, &line);
-			
+			val = -alphabetaHelper(board, -beta, -alpha, depth-3, &line);	
 		}
 		board->undoMove();
 		
@@ -265,6 +264,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 			}else{
 				blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
 			}
+			score = beta;
 			return beta;
 		}
 		if(val > alpha){
@@ -283,6 +283,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}
 	}
+	score = alpha;
 	return alpha;
 }
 //Ignoring in the pv for now.

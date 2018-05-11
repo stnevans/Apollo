@@ -34,7 +34,14 @@ int whitePawnEndgame[] = { 				0,0,0,0,0,0,0,0,
 						0,0,0,0,0,0,0,0						
 };
 
-
+int noPawnKingSquare[] = {-20,-10,-10,-10,-10,-10,-10,-20,
+						-10,0,0,0,0,0,0,-10,
+						-10,0,1,1,1,1,0,-10,
+						-10,0,1,2,2,1,0,-10,
+						-10,0,1,2,2,1,0,-10,
+						-10,0,1,1,1,1,0,-10,
+						-10,0,0,0,0,0,0,-10,
+						-20,-10,-10,-10,-10,-10,-10,-20};
 					   
 int centralizationValue(U64 bb){
 	int eval = 0;
@@ -99,6 +106,10 @@ int Eval::basicEvaluate(Board * b){
 	if(totalMaterial <= 1400){
 		eval+=centralizationValue(whitePawns,whitePawnEndgame);
 		eval-=centralizationValue(blackPawns,blackPawnEndgame);
+		if(whitePawns == 0LL && blackPawns == 0LL){
+			//eval+=noPawnKingSquare[trailingZeroCount(whiteKings)];
+			//eval-=noPawnKingSquare[trailingZeroCount(blackKings)];
+		}
 	}else{
 		eval+=centralizationValue(whitePawns);
 		eval-=centralizationValue(blackPawns);
