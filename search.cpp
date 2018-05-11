@@ -148,7 +148,6 @@ Move Search::iterativeDeepening(Board * board){
 Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
 	startDepth = depth;
 	Move moves[MAX_MOVES];
-	char buffer[100] ={};
 	U8 moveCount = getAllLegalMoves(board,moves);
 	
 	//If there's only one move, play it.
@@ -162,7 +161,6 @@ Move Search::getAlphabetaMove(Board * board, int depth, LINE * pline){
 	int max = INT_MIN;
 	Move bestMove;
 	LINE line;
-	//orderMoves(moves,board,moveCount,startDepth-depth);
 	bool whiteToMove = board->currentBoard()->whiteToMove;
 
 	for(int i = 0; i < moveCount; i++){
@@ -232,9 +230,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
 
-		//if(isMoveFutile(board,,depth,i,moves[i],alpha,beta,curEval)){
-		//	continue;
-		//}
+		if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
+			continue;
+		}
 
 		board->makeMove(moves[i]);
 		int val;
@@ -280,7 +278,6 @@ int Search::quiesce(Board * board, int alpha, int beta){
 		alpha = curEval;
 	}
 	
-	//printf("%i %i\n",curEval, alpha);
 
 	Move moves[MAX_MOVES];
 	U8 moveCount = Movegen::getAllCaptures(board,moves);
@@ -376,9 +373,9 @@ bool Search::isMoveFutile(Board * b, int depthSearched, int depthToGo, int moves
 	if(b->isOwnKingInCheck()){
 		return false;
 	}
-	//if(b->isMoveCheck(move)){
-	//	return false;
-	//}
+	if(b->isMoveCheck(move)){
+		return false;
+	}
 	BoardInfo * boardInfo = b->currentBoard();
 	
 	//Pushing to 7th rank is scary
@@ -404,5 +401,5 @@ bool Search::isMoveFutile(Board * b, int depthSearched, int depthToGo, int moves
 		}
 	}
 	int futilityValue = futilityMoves[depthToGo];
-	return curEval+futilityValue < alpha;
+	return curEval+futilityValue+b->staticExchange(move) < alpha;
 }

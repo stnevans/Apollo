@@ -95,13 +95,13 @@ int Board::staticExchange(U8 from, U8 to, PieceType moving, PieceType captured){
 }
 
 
-/*
+
 bool Board::isMoveCheck(Move m){
 	fastMakeMove(m);
-	bool result = legal();
+	bool result = isOwnKingInCheck();
 	undoMove();
 	return result;
-}*/
+}
 
 bool validCache;
 bool isInCheckCache;

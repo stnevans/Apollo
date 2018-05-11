@@ -54,6 +54,7 @@ class Board{
 		bool isOwnKingInCheck();
 		bool legal();
 		bool isCheckmate();
+		bool isMoveCheck(Move m);
 		int currentSideMaterial();
 		int totalMaterial();
 
