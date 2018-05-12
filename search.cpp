@@ -88,6 +88,8 @@ Search::LINE lastPv;
 //Used for move ordering
 U64 whiteHeuristic[64][64];
 U64 blackHeuristic[64][64];
+constexpr int MAX_DEPTH = 200;
+Move killerMoves[MAX_DEPTH][2] = {};
 
 int startDepth=0; //Used to determine how long until we hit horizon in an alphabeta search
 double endTime; //Used to determine when to leave deepening
@@ -115,7 +117,7 @@ Move Search::iterativeDeepening(Board * board){
 			blackHeuristic[i][j]=0;
 		}
 	}
-	for(int depth = 1; depth < 200; depth++){
+	for(int depth = 1; depth < MAX_DEPTH; depth++){
 		nodeCount = 0;
 		LINE line;
 		currentlyFollowingPv = true;
@@ -185,7 +187,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	
 	//Null Move
-	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck() && depth > 3){
+	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck() && depth > 2){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
@@ -207,31 +209,38 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
 
-		if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
-			continue;
-		}
+		//if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
+		//	continue;
+		//}
 
 		board->makeMove(moves[i]);
 		int val;
 		
 		//Attempt at LMR -- no LMR in endgame because moves that appear suboptimal are often better than expected.
-		if(i < moveCount/4 || depth < 3 || board->currentSideMaterial() < 1000){
+		//Note: LMR can sometimes cause pv lines to be too short. A problem.
+		if(i < 2*moveCount/3 || depth < 3 || board->currentSideMaterial() < 1000){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
 		}else if(i < 3*moveCount/4) {
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
-		}else{
-			val = -alphabetaHelper(board, -beta, -alpha, depth-3, &line);	
 		}
 		board->undoMove();
 		
 		//Beta Cutoff
 		if(val >= beta){
-			//The move must be premty good.
+			//History Heuristic Update
 			if(whiteToMove){
 				whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
 			}else{
 				blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
 			}
+			
+			//Killer move update
+			killerMoves[depth][1] = killerMoves[depth][0];
+			//for(int i = sizeof(killerMoves[depth])/sizeof(killerMoves[depth][0]) - 2; i >= 0; i--){
+			//	killerMoves[depth][i+1] = killerMoves[depth][i];
+			//}
+			killerMoves[depth][0] = moves[i];
+			
 			score = beta;
 			return beta;
 		}
@@ -294,10 +303,28 @@ Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDept
 			}
 		}
 	}
+	
+	/*for(int i = 0; i < sizeof(killerMoves[depth])/sizeof(killerMoves[depth][0]); i++){
+		Move killerMove = killerMoves[depth][i];
+		for(int j = 0; j < numMoves; j++){
+			if(moves[j] == killerMove){
+				Move temp = moves[j];
+				moves[j] = moves[idx];
+				moves[idx] = temp; 
+			}
+		}
+	}*/
+	
 	if(whiteToMove){
 		int max = whiteHeuristic[from_sq(idx)][to_sq(idx)];
 		int maxIdx = idx;
 		for(int i = idx+1; i < numMoves; i++){
+			if(killerMoves[depth][0] ==moves[i] || killerMoves[depth][1] == i){
+				Move temp = moves[i];
+				moves[i] = moves[idx];
+				moves[idx] = temp;
+				return moves;
+			}
 			if(whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
 				max = whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])];
 				maxIdx = i;
@@ -313,6 +340,12 @@ Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDept
 		int max = blackHeuristic[from_sq(idx)][to_sq(idx)];
 		int maxIdx = idx;
 		for(int i = idx+1; i < numMoves; i++){
+			if(killerMoves[depth][0] ==moves[i] || killerMoves[depth][1] == i){
+				Move temp = moves[i];
+				moves[i] = moves[idx];
+				moves[idx] = temp;
+				return moves;
+			}
 			if(blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
 				max = blackHeuristic[from_sq(moves[i])][to_sq(moves[i])];
 				maxIdx = i;
