@@ -18,7 +18,7 @@ U64 pseudoLegalKingMoveDestinations(U8 loc, U64 targets) {
 	return kingMoves[loc] & targets;
 }
 
-U8 getAllBlackMoves(BoardInfo * boardInfo, Move list[]){
+U8 getAllBlackMoves(BoardInfo * boardInfo, ExtMove list[]){
 	int idx = 0;
 	idx+= getBlackBishopMoves(boardInfo, list, idx);
 	idx+=getBlackKnightMoves(boardInfo, list, idx);
@@ -30,7 +30,7 @@ U8 getAllBlackMoves(BoardInfo * boardInfo, Move list[]){
 	return idx;
 }
 
-U8 getAllWhiteMoves(BoardInfo* boardInfo, Move list[]){
+U8 getAllWhiteMoves(BoardInfo* boardInfo, ExtMove list[]){
 	int idx = 0;
 	idx+= getWhiteBishopMoves(boardInfo, list, idx);
 	idx+=getWhiteKnightMoves(boardInfo, list, idx);
@@ -41,7 +41,7 @@ U8 getAllWhiteMoves(BoardInfo* boardInfo, Move list[]){
 
 	return idx;
 }
-U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, Move list[]){
+U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, ExtMove list[]){
 	if(boardInfo->whiteToMove){
 		return getAllWhiteMoves(boardInfo, list);
 	}
@@ -54,7 +54,7 @@ U64 potentiallyPinned[] = {9313761861428380670,180779649147209727,28950170425655
 
 
 //Pretty incredible. This is 5x slower than pseudo legal.
-U8 getAllLegalMoves(Board* b, Move list[]){
+U8 getAllLegalMoves(Board* b, ExtMove list[]){
 	//Also actually generate by piece rather than calling PseudoLegal.
 	//If KING, CHECK.
 	//If Bishop of same color, check in check.
@@ -82,7 +82,7 @@ U8 getAllLegalMoves(Board* b, Move list[]){
 	}
 	if(check){
 		for (int i = 0; i < count; i++) {
-			b->fastMakeMove(list[i]);
+			b->fastMakeMove(list[i].move);
 			if(b->legal()){
 				list[j++] = list[i];
 			}
@@ -91,7 +91,7 @@ U8 getAllLegalMoves(Board* b, Move list[]){
 	}else{
 		for (int i = 0; i < count; i++) {
 			if(mask & getSquare[from_sq(list[i])] || PieceMoved(list[i]) == KING){
-				b->fastMakeMove(list[i]);
+				b->fastMakeMove(list[i].move);
 				if(b->legal()){
 					list[j++] = list[i];
 				}
@@ -106,7 +106,7 @@ U8 getAllLegalMoves(Board* b, Move list[]){
 
 }
 
-U8 getWhiteKingMoves(BoardInfo* b, Move moves[], int index) {
+U8 getWhiteKingMoves(BoardInfo* b, ExtMove moves[], int index) {
 	U64 king = b->WhiteKingBB;
 	
 	int num_moves_generated = 0;
@@ -118,7 +118,7 @@ U8 getWhiteKingMoves(BoardInfo* b, Move moves[], int index) {
 		U64 to = lowestOneBit(movelocs);
 		U8 to_loc = trailingZeroCount(to);
 		Move move =createMove(from_loc, to_loc, KING);
-		moves[index + num_moves_generated] = move;
+		moves[index + num_moves_generated].move = move;
 		num_moves_generated++;
 		movelocs &= ~to;
 	}
@@ -132,7 +132,7 @@ U8 getWhiteKingMoves(BoardInfo* b, Move moves[], int index) {
 								true)
 						&& !isSquareAttacked(b, king << 2,
 								true)) {
-					moves[index + num_moves_generated] =
+					moves[index + num_moves_generated].move =
 							createMove(from_loc, from_loc + 2, KING, KING, CASTLING);
 					num_moves_generated++;
 				}
@@ -150,7 +150,7 @@ U8 getWhiteKingMoves(BoardInfo* b, Move moves[], int index) {
 								true)
 						&& !isSquareAttacked(b, king >> 2,
 								true)) {
-					moves[index + num_moves_generated] =
+					moves[index + num_moves_generated].move =
 							createMove(from_loc, from_loc - 2, KING, KING, CASTLING);
 					num_moves_generated++;
 				}
@@ -160,7 +160,7 @@ U8 getWhiteKingMoves(BoardInfo* b, Move moves[], int index) {
 	
 	return num_moves_generated;
 }
-U8 getBlackKingMoves(BoardInfo* b, Move moves[], int index) {
+U8 getBlackKingMoves(BoardInfo* b, ExtMove moves[], int index) {
 	U64 king = b->BlackKingBB;
 	
 	int num_moves_generated = 0;
@@ -172,7 +172,7 @@ U8 getBlackKingMoves(BoardInfo* b, Move moves[], int index) {
 		U64 to = lowestOneBit(movelocs);
 		U8 to_loc = trailingZeroCount(to);
 		Move move = createMove(from_loc, to_loc, KING);
-		moves[index + num_moves_generated] = move;
+		moves[index + num_moves_generated].move = move;
 		num_moves_generated++;
 		movelocs &= ~to;
 	}
@@ -186,7 +186,7 @@ U8 getBlackKingMoves(BoardInfo* b, Move moves[], int index) {
 								false)
 						&& !isSquareAttacked(b, b->BlackKingBB << 2,
 								false)) {
-					moves[index + num_moves_generated] =
+					moves[index + num_moves_generated].move =
 							createMove(from_loc, from_loc + 2, KING, KING, CASTLING);
 					num_moves_generated++;
 				}
@@ -204,7 +204,7 @@ U8 getBlackKingMoves(BoardInfo* b, Move moves[], int index) {
 								false)
 						&& !isSquareAttacked(b, b->BlackKingBB >> 2,
 								false)) {
-					moves[index + num_moves_generated] =
+					moves[index + num_moves_generated].move =
 							createMove(from_loc, from_loc - 2, KING,
 									KING, CASTLING);
 					num_moves_generated++;
@@ -215,7 +215,7 @@ U8 getBlackKingMoves(BoardInfo* b, Move moves[], int index) {
 	
 	return num_moves_generated;
 }
-U8 getWhiteKnightMoves(BoardInfo *b, Move moves[], int index) {
+U8 getWhiteKnightMoves(BoardInfo *b, ExtMove moves[], int index) {
 	U64 knights = b->WhiteKnightBB;
 	U8 num_moves_generated = 0;
 	
@@ -229,7 +229,7 @@ U8 getWhiteKnightMoves(BoardInfo *b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, KNIGHT);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -239,7 +239,7 @@ U8 getWhiteKnightMoves(BoardInfo *b, Move moves[], int index) {
 }
 
 
-U8 getBlackKnightMoves(BoardInfo* b,Move moves[], int index) {
+U8 getBlackKnightMoves(BoardInfo* b,ExtMove moves[], int index) {
 	U64 knights = b->BlackKnightBB;
 	int num_moves_generated = 0;
 	
@@ -253,7 +253,7 @@ U8 getBlackKnightMoves(BoardInfo* b,Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, KNIGHT);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -261,7 +261,7 @@ U8 getBlackKnightMoves(BoardInfo* b,Move moves[], int index) {
 	}
 	return num_moves_generated;
 }
-U8 getWhitePawnMoves(BoardInfo * b, Move list[], int listIdx){
+U8 getWhitePawnMoves(BoardInfo * b, ExtMove list[], int listIdx){
 	U64 pawns = b->WhitePawnBB;
 	int moveGenCount = 0;
 	
@@ -275,48 +275,48 @@ U8 getWhitePawnMoves(BoardInfo * b, Move list[], int listIdx){
 			if(((fromBB & maskFile[FILE_A]) == 0) &&  (((fromBB << 7 ) & (b->BlackPiecesBB)) != 0)){
 				U8 destLoc = trailingZeroCount(fromBB << 7);
 				Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, BISHOP, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, ROOK, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 			//If pawn not on H file, and there is a piece to capture upper right
 			if(((fromBB & maskFile[FILE_H]) ==0) && (((fromBB <<9) & (b->BlackPiecesBB)) != 0)){
 				U8 destLoc = trailingZeroCount(fromBB << 9);
 				Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, BISHOP, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, ROOK, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 			//If next square clear
 			if(((fromBB << 8) & (b->AllPiecesBB)) == 0){
 				U8 destLoc = trailingZeroCount(fromBB << 8);
 				Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, BISHOP, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, ROOK, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 		}else{
@@ -331,7 +331,7 @@ U8 getWhitePawnMoves(BoardInfo * b, Move list[], int listIdx){
 				}else{
 					m = createMove(fromLoc, destLoc, PAWN);
 				}
-				list[listIdx+moveGenCount] = m;			
+				list[listIdx+moveGenCount].move = m;			
 				moveGenCount++;
 			}
 			
@@ -344,7 +344,7 @@ U8 getWhitePawnMoves(BoardInfo * b, Move list[], int listIdx){
 				}else{
 					m = createMove(fromLoc, destLoc, PAWN);
 				}
-				list[listIdx+moveGenCount] = m;			
+				list[listIdx+moveGenCount].move = m;			
 				moveGenCount++;
 			}
 			Move m;
@@ -354,14 +354,14 @@ U8 getWhitePawnMoves(BoardInfo * b, Move list[], int listIdx){
 				nextSquareClear=true;
 				U8 destLoc = trailingZeroCount(fromBB << 8);
 				m = createMove(fromLoc, destLoc, PAWN);
-				list[listIdx+moveGenCount] = m;			
+				list[listIdx+moveGenCount].move = m;			
 				moveGenCount++;
 			}
 			//2 Squares
 			if(((fromBB & maskRank[RANK_2]) != 0) && nextSquareClear && (((fromBB << 16) & (b->AllPiecesBB)) == 0)){
 				U8 destLoc = trailingZeroCount(fromBB << 16);
 				m = createMove(fromLoc, destLoc, PAWN);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 		}
@@ -371,7 +371,7 @@ U8 getWhitePawnMoves(BoardInfo * b, Move list[], int listIdx){
 }
 
 
-U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
+U8 getBlackPawnMoves(BoardInfo * b, ExtMove list[], int listIdx){
 	U64 pawns = b->BlackPawnBB;
 	int moveGenCount = 0;
 	
@@ -385,48 +385,48 @@ U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
 			if(((fromBB & maskFile[FILE_H]) == 0) &&  (((fromBB >> 7) & (b->WhitePiecesBB)) != 0)){
 				U8 destLoc = trailingZeroCount(fromBB >> 7);
 				Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, BISHOP, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, ROOK, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 			//If pawn not on H file, and there is a piece to capture upper right
 			if(((fromBB & maskFile[FILE_A]) ==0) && (((fromBB >>9) & (b->WhitePiecesBB)) != 0)){
 				U8 destLoc = trailingZeroCount(fromBB >>9);
 				Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, BISHOP, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, ROOK, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 			//If next square clear
 			if(((fromBB >>8) & (b->AllPiecesBB)) == 0){
 				U8 destLoc = trailingZeroCount(fromBB >> 8);
 				Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, BISHOP, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 				m = createMove(fromLoc, destLoc, PAWN, ROOK, PROMOTION);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 		}else{
@@ -441,7 +441,7 @@ U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
 				}else{
 					m = createMove(fromLoc, destLoc, PAWN);
 				}
-				list[listIdx+moveGenCount] = m;			
+				list[listIdx+moveGenCount].move = m;			
 				moveGenCount++;
 			}
 			
@@ -454,7 +454,7 @@ U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
 				}else{
 					m = createMove(fromLoc, destLoc, PAWN);
 				}
-				list[listIdx+moveGenCount] = m;			
+				list[listIdx+moveGenCount].move = m;			
 				moveGenCount++;
 			}
 			//Normal move
@@ -464,7 +464,7 @@ U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
 				Move m;
 				U8 destLoc = trailingZeroCount(fromBB >> 8);
 				m = createMove(fromLoc, destLoc, PAWN);
-				list[listIdx+moveGenCount] = m;			
+				list[listIdx+moveGenCount].move = m;			
 				moveGenCount++;
 			}
 			//2 Squares
@@ -472,7 +472,7 @@ U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
 				Move m;
 				U8 destLoc = trailingZeroCount(fromBB >> 16);
 				m = createMove(fromLoc, destLoc, PAWN);
-				list[listIdx+moveGenCount] = m;
+				list[listIdx+moveGenCount].move = m;
 				moveGenCount++;
 			}
 		}
@@ -481,7 +481,7 @@ U8 getBlackPawnMoves(BoardInfo * b, Move list[], int listIdx){
 	return moveGenCount;
 }
 
-U8 getWhiteBishopMoves(BoardInfo * b, Move moves[], int index) {
+U8 getWhiteBishopMoves(BoardInfo * b, ExtMove moves[], int index) {
 	U64 bishops = b->WhiteBishopBB;
 	U8 num_moves_generated = 0;
 	
@@ -497,7 +497,7 @@ U8 getWhiteBishopMoves(BoardInfo * b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, BISHOP);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -506,7 +506,7 @@ U8 getWhiteBishopMoves(BoardInfo * b, Move moves[], int index) {
 	}
 	return num_moves_generated;
 }
-U8 getBlackBishopMoves(BoardInfo* b,Move moves[], int index) {
+U8 getBlackBishopMoves(BoardInfo* b,ExtMove moves[], int index) {
 	U64 bishops = b->BlackBishopBB;
 	U8 num_moves_generated = 0;
 	
@@ -522,7 +522,7 @@ U8 getBlackBishopMoves(BoardInfo* b,Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, BISHOP);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -531,7 +531,7 @@ U8 getBlackBishopMoves(BoardInfo* b,Move moves[], int index) {
 	}
 	return num_moves_generated;
 }
-U8 getWhiteRookMoves(BoardInfo* b, Move moves[], int index) {
+U8 getWhiteRookMoves(BoardInfo* b, ExtMove moves[], int index) {
 	U64 rooks = b->WhiteRookBB;
 	int num_moves_generated = 0;
 	
@@ -546,7 +546,7 @@ U8 getWhiteRookMoves(BoardInfo* b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, ROOK);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -556,7 +556,7 @@ U8 getWhiteRookMoves(BoardInfo* b, Move moves[], int index) {
 	return num_moves_generated;
 }
 
-U8 getBlackRookMoves(BoardInfo *b, Move moves[], int index) {
+U8 getBlackRookMoves(BoardInfo *b, ExtMove moves[], int index) {
 	U64 rooks = b->BlackRookBB;
 	U8 num_moves_generated = 0;
 	
@@ -571,7 +571,7 @@ U8 getBlackRookMoves(BoardInfo *b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, ROOK);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -582,7 +582,7 @@ U8 getBlackRookMoves(BoardInfo *b, Move moves[], int index) {
 }
 
 
-U8 getWhiteQueenMoves(BoardInfo* b, Move moves[], int index) {
+U8 getWhiteQueenMoves(BoardInfo* b, ExtMove moves[], int index) {
 	U64 queens = b->WhiteQueenBB;
 	int num_moves_generated = 0;
 	
@@ -599,7 +599,7 @@ U8 getWhiteQueenMoves(BoardInfo* b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, QUEEN);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -609,7 +609,7 @@ U8 getWhiteQueenMoves(BoardInfo* b, Move moves[], int index) {
 	return num_moves_generated;
 }
 
-U8 getBlackQueenMoves(BoardInfo * b, Move moves[], int index) {
+U8 getBlackQueenMoves(BoardInfo * b, ExtMove moves[], int index) {
 	U64 queens = b->BlackQueenBB;
 	U8 num_moves_generated = 0;
 	
@@ -625,7 +625,7 @@ U8 getBlackQueenMoves(BoardInfo * b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, QUEEN);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}
@@ -635,7 +635,7 @@ U8 getBlackQueenMoves(BoardInfo * b, Move moves[], int index) {
 	return num_moves_generated;
 }
 //TODO needs to be vastly improved
-U8 Movegen::getAllCaptures(Board * b, Move moves[]){
+U8 Movegen::getAllCaptures(Board * b, ExtMove moves[]){
 	U8 movess = getAllLegalMoves(b,moves);
 	U64 piecesToCap;
 	if(b->currentBoard()->whiteToMove){
@@ -647,7 +647,7 @@ U8 Movegen::getAllCaptures(Board * b, Move moves[]){
 	int j = 0;
 	for(int i = 0; i < movess; i++){
 		 if((getSquare[to_sq(moves[i])] & piecesToCap) != 0 || type_of(moves[i]) == PROMOTION){
-			if(b->staticExchange(moves[i]) > 0){
+			if(b->staticExchange(moves[i].move) > 0){
 				moves[j++] = moves[i];
 			}
 		 }
@@ -656,7 +656,7 @@ U8 Movegen::getAllCaptures(Board * b, Move moves[]){
 }
 
 /*
-U8 getBlackQueenCaptures(BoardInfo * b, Move moves[], int index) {
+U8 getBlackQueenCaptures(BoardInfo * b, ExtMove moves[], int index) {
 	U64 queens = b->BlackQueenBB;
 	U8 num_moves_generated = 0;
 	
@@ -672,7 +672,7 @@ U8 getBlackQueenCaptures(BoardInfo * b, Move moves[], int index) {
 			U8 to_loc = trailingZeroCount(to);
 			Move move =
 					createMove(from_loc, to_loc, QUEEN);
-			moves[index + num_moves_generated] = move;
+			moves[index + num_moves_generated].move = move;
 			num_moves_generated++;
 			movelocs &= ~to;
 		}

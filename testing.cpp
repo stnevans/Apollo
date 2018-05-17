@@ -50,12 +50,12 @@ int perft(Board* b, int depth) {
 		return 1;
 	}
 	
-	Move moveList[MAX_MOVES]={};
+	ExtMove moveList[MAX_MOVES]={};
 	int num_moves = getAllLegalMoves(b, moveList);
 	int count = 0;
 	
 	for (int i = 0; i < num_moves; i++) {
-		b->makeMove(moveList[i]);
+		b->makeMove(moveList[i].move);
 		count += perft(b, depth - 1);
 		b->undoMove();
 	}

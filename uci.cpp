@@ -94,11 +94,11 @@ char* UCI::getMoveString(Move m, char* ret){
 Move UCI::toMove(Board * board, std::string move){
 	//printf("%s\n", move.c_str());
 	char curMove[100];
-	Move moves[MAX_MOVES];
+	ExtMove moves[MAX_MOVES];
 	U8 count = getAllLegalMoves(board,moves);
 	for(int i = 0; i < count; i++){
 		memset(&curMove[0], 0, sizeof(curMove));
-		Move move1 = moves[i];
+		Move move1 = moves[i].move;
 		//printf("Compare %s : %s\n", move.c_str(), getMoveString(move1,curMove)); 
 		if(strcmp(move.c_str(),getMoveString(move1,curMove)) == 0){
 			//printf("RET\n");
@@ -165,11 +165,11 @@ int UCI::perft(Board* b, int depth) {
 	if (depth == 0){
 		return 1;
 	}
-	Move moveList[MAX_MOVES]={};
+	ExtMove moveList[MAX_MOVES]={};
 	int num_moves = getAllLegalMoves(b, moveList);
 	int count = 0;	
 	for (int i = 0; i < num_moves; i++) {
-		b->makeMove(moveList[i]);
+		b->makeMove(moveList[i].move);
 		count += perft(b, depth - 1);
 		b->undoMove();
 	}
@@ -178,15 +178,15 @@ int UCI::perft(Board* b, int depth) {
 }
 
 int UCI::divide(Board* b, int depth) {
-	Move moveList[MAX_MOVES]={};
+	ExtMove moveList[MAX_MOVES]={};
 	int num_moves = getAllLegalMoves(b, moveList);
 	int count = 0;
 	char buffer[100];
 	for (int i = 0; i < num_moves; i++) {
-		b->makeMove(moveList[i]);
+		b->makeMove(moveList[i].move);
 		int countc = perft(b, depth - 1);
 		count+= countc;
-		printf("%s : %i\n", getMoveString(moveList[i],buffer),countc);
+		printf("%s : %i\n", getMoveString(moveList[i].move,buffer),countc);
 		b->undoMove();
 	}
 	return count;

@@ -203,7 +203,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 
 	canDoNullMove=true;
 
-	Move moves[MAX_MOVES];
+	ExtMove moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
 	bool whiteToMove = board->currentBoard()->whiteToMove;
 	for(int i = 0; i < moveCount; i++){
@@ -213,16 +213,16 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		//	continue;
 		//}
 
-		board->makeMove(moves[i]);
+		board->makeMove(moves[i].move);
 		int val;
 		
 		//Attempt at LMR -- no LMR in endgame because moves that appear suboptimal are often better than expected.
 		//Note: LMR can sometimes cause pv lines to be too short. A problem.
-		if(i < 2*moveCount/3 || depth < 3 || board->currentSideMaterial() < 1000){
+		//if(i < 2*moveCount/3 || depth < 3 || board->currentSideMaterial() < 1000){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
-		}else if(i < 3*moveCount/4) {
-			val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
-		}
+		//}else if(i < 3*moveCount/4) {
+	//		val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
+		//}
 		board->undoMove();
 		
 		//Beta Cutoff
@@ -236,21 +236,19 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 			
 			//Killer move update
 			killerMoves[depth][1] = killerMoves[depth][0];
-			//for(int i = sizeof(killerMoves[depth])/sizeof(killerMoves[depth][0]) - 2; i >= 0; i--){
-			//	killerMoves[depth][i+1] = killerMoves[depth][i];
-			//}
-			killerMoves[depth][0] = moves[i];
+			killerMoves[depth][0] = moves[i].move;
 			
 			score = beta;
 			return beta;
 		}
+		//Update the pv
 		if(val > alpha){
 			alpha = val;
-			pline->argmove[0] = moves[i];
+			pline->argmove[0] = moves[i].move;
 			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
 			pline->cmove = line.cmove + 1;
 			alphaHits++;
-			bestMove = moves[i];
+			bestMove = moves[i].move;
 		}
 	}
 	if(alphaHits != 0){
@@ -275,10 +273,10 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	}
 	
 
-	Move moves[MAX_MOVES];
+	ExtMove moves[MAX_MOVES];
 	U8 moveCount = Movegen::getAllCaptures(board,moves);
 	for(int i = 0; i < moveCount; i++){
-		board->makeMove(moves[i]);
+		board->makeMove(moves[i].move);
 		int score = -quiesce(board, -beta, -alpha);
 		board->undoMove();
 		if(score >= beta){
@@ -290,49 +288,37 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	}
 	return alpha;
 }
-Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
+void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
 	//if tt:probe(board) 
 	
 	//Order by pv move without testing if we are in the pv.
 	if(currentlyFollowingPv && depth > 1){
 		for(int i = idx; i < numMoves; i++){
-			if(lastPv.argmove[curDepthSearched] == moves[i]){
-				Move temp = moves[i];
+			if(lastPv.argmove[curDepthSearched] == moves[i].move){
+				ExtMove temp = moves[i];
 				moves[i] = moves[idx];
 				moves[idx] = temp;
 			}
 		}
 	}
 	
-	/*for(int i = 0; i < sizeof(killerMoves[depth])/sizeof(killerMoves[depth][0]); i++){
-		Move killerMove = killerMoves[depth][i];
-		for(int j = 0; j < numMoves; j++){
-			if(moves[j] == killerMove){
-				Move temp = moves[j];
-				moves[j] = moves[idx];
-				moves[idx] = temp; 
-			}
-		}
-	}*/
-	
 	if(whiteToMove){
 		int max = whiteHeuristic[from_sq(idx)][to_sq(idx)];
 		int maxIdx = idx;
 		for(int i = idx+1; i < numMoves; i++){
-			if(killerMoves[depth][0] ==moves[i] || killerMoves[depth][1] == i){
-				Move temp = moves[i];
+			if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
+				ExtMove temp = moves[i];
 				moves[i] = moves[idx];
 				moves[idx] = temp;
-				return moves;
+				return;
 			}
 			if(whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
 				max = whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])];
 				maxIdx = i;
 			}
 		}
-		//Can be removed?
 		if(maxIdx > idx){
-			Move temp = moves[maxIdx];
+			ExtMove temp = moves[maxIdx];
 			moves[maxIdx] = moves[idx];
 			moves[idx] = temp;
 		}
@@ -340,26 +326,25 @@ Move * Search::orderMoves(Move moves[], Board * board, int numMoves, int curDept
 		int max = blackHeuristic[from_sq(idx)][to_sq(idx)];
 		int maxIdx = idx;
 		for(int i = idx+1; i < numMoves; i++){
-			if(killerMoves[depth][0] ==moves[i] || killerMoves[depth][1] == i){
-				Move temp = moves[i];
+			if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
+				ExtMove temp = moves[i];
 				moves[i] = moves[idx];
 				moves[idx] = temp;
-				return moves;
+				return;
 			}
 			if(blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
 				max = blackHeuristic[from_sq(moves[i])][to_sq(moves[i])];
 				maxIdx = i;
 			}
 		}
-		//Can be removed?
 		if(maxIdx > idx){
-			Move temp = moves[maxIdx];
+			ExtMove temp = moves[maxIdx];
 			moves[maxIdx] = moves[idx];
 			moves[idx] = temp;
 		}
 	}
 	
-	return moves;
+	return;
 }
 
 /*

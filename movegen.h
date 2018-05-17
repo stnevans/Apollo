@@ -11,30 +11,49 @@ struct ExtMove{
 	int value;
 };
 
+constexpr U8 from_sq(ExtMove m) {
+  return U8((m.move >> 6) & 0x3F);
+}
+
+constexpr U8 to_sq(ExtMove m) {
+  return U8(m.move & 0x3F);
+}
+
+constexpr MoveType type_of(ExtMove m) {
+  return MoveType((m.move >> 18) & 0x3);
+}
+
+constexpr PieceType promotion_type(ExtMove m) {
+  return PieceType((m.move >> 15) & 0x7);
+}
+
+constexpr PieceType PieceMoved(ExtMove m) {
+  return PieceType((m.move >> 12) & 0x7);
+}
 inline bool operator<(const ExtMove& f, const ExtMove& s) {
   return f.value < s.value;
 }
 U64 pseudoLegalKnightMoveDestinations(U8 loc, U64 targets);
 U64 pseudoLegalKingMoveDestinations(U8 loc, U64 targets) ;
-U8 getWhiteKingMoves(BoardInfo* b, Move moves[], int index);
-U8 getBlackKingMoves(BoardInfo* b, Move moves[], int index);
-U8 getWhiteKnightMoves(BoardInfo *b, Move moves[], int index);
-U8 getBlackKnightMoves(BoardInfo *b, Move moves[], int index);
-U8 getWhiteBishopMoves(BoardInfo *b, Move moves[], int index);
-U8 getBlackBishopMoves(BoardInfo *b, Move moves[], int index);
-U8 getBlackRookMoves(BoardInfo *b, Move moves[], int index);
-U8 getWhiteRookMoves(BoardInfo *b, Move moves[], int index);
-U8 getBlackQueenMoves(BoardInfo *b, Move moves[], int index);
-U8 getWhiteQueenMoves(BoardInfo *b, Move moves[], int index);
-U8 getWhitePawnMoves(BoardInfo *b, Move moves[], int index);
-U8 getBlackPawnMoves(BoardInfo *b, Move moves[], int index);
+U8 getWhiteKingMoves(BoardInfo* b, ExtMove moves[], int index);
+U8 getBlackKingMoves(BoardInfo* b, ExtMove moves[], int index);
+U8 getWhiteKnightMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getBlackKnightMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getWhiteBishopMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getBlackBishopMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getBlackRookMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getWhiteRookMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getBlackQueenMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getWhiteQueenMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getWhitePawnMoves(BoardInfo *b, ExtMove moves[], int index);
+U8 getBlackPawnMoves(BoardInfo *b, ExtMove moves[], int index);
 
 Move* getMoveList();
 
-U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, Move list[]);
-U8 getAllLegalMoves(Board* boardInfo, Move list[]);
+U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, ExtMove list[]);
+U8 getAllLegalMoves(Board* boardInfo, ExtMove list[]);
 
 namespace Movegen{
-	U8 getAllCaptures(Board * b, Move moves[]);
+	U8 getAllCaptures(Board * b, ExtMove moves[]);
 }
 #endif

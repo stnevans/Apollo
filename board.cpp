@@ -127,7 +127,7 @@ int Board::totalMaterial(){
 
 
 bool Board::isDraw(){
-	Move moves[MAX_MOVES];
+	ExtMove moves[MAX_MOVES];
 	if(getAllLegalMoves(this, moves) == 0){
 		if(!(isSquareAttacked(boardInfo, boardInfo->WhiteKingBB, true)
 				|| isSquareAttacked(boardInfo, boardInfo->BlackKingBB, false))){
@@ -153,7 +153,7 @@ bool Board::legal() {
 	return !isSquareAttacked(currentBoard(), boardInfo->BlackKingBB, false);
 }
 bool Board::isCheckmate(){
-	Move moves[MAX_MOVES];
+	ExtMove moves[MAX_MOVES];
 	if(isOwnKingInCheck()){
 		if(getAllLegalMoves(this, moves) == 0){
 			return true;

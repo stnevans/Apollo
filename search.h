@@ -3,7 +3,7 @@
 #include "move.h"
 #include "stdafx.h"
 #include "board.h"
-
+#include "movegen.h"
 namespace Search{
 	struct Config{
 		int depth=0; // in ply
@@ -31,7 +31,7 @@ namespace Search{
 	bool isMoveFutile(Board * b, int depthSearched, int depthToGo, int movesSearched, Move move, int alpha, int beta, int curEval);
 	void calculateMovetime(Board* b);
 	Move iterativeDeepening(Board * board);
-	Move * orderMoves(Move moves[], Board * board, int numMoves, int curDepth, int depth, int idx, bool white);
+	void orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepth, int depth, int idx, bool white);
 	
 }
 #endif
