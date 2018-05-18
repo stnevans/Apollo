@@ -303,48 +303,33 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 		}
 	}
 	
-	if(whiteToMove){
-		int max = moves[idx].score;
-		int maxIdx = idx;
-		for(int i = idx+1; i < numMoves; i++){
-			if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
-				ExtMove temp = moves[i];
-				moves[i] = moves[idx];
-				moves[idx] = temp;
-				return;
-			}
-			if(moves[i].score > max){
-				max = moves[i].score;
-				maxIdx = i;
-			}
-		}
-		if(maxIdx > idx){
-			ExtMove temp = moves[maxIdx];
-			moves[maxIdx] = moves[idx];
+	int max = moves[idx].score;
+	int maxIdx = idx;
+	for(int i = idx+1; i < numMoves; i++){
+		if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
+			ExtMove temp = moves[i];
+			moves[i] = moves[idx];
 			moves[idx] = temp;
+			return;
 		}
-	}else{
-		int max = moves[idx].score;
-		int maxIdx = idx;
-		for(int i = idx+1; i < numMoves; i++){
-			if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
-				ExtMove temp = moves[i];
-				moves[i] = moves[idx];
-				moves[idx] = temp;
-				return;
-			}
-			if(moves[i].score > max){
-				max = moves[i].score;
-				maxIdx = i;
+		if(moves[i].score == 0){
+			if(whiteToMove){
+				moves[i].score = whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];
+			}else{
+				moves[i].score = blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];	
 			}
 		}
-		if(maxIdx > idx){
-			ExtMove temp = moves[maxIdx];
-			moves[maxIdx] = moves[idx];
-			moves[idx] = temp;
+		if(moves[i].score > max){
+			max = moves[i].score;
+			maxIdx = i;
 		}
 	}
-	
+	if(maxIdx > idx){
+		ExtMove temp = moves[maxIdx];
+		moves[maxIdx] = moves[idx];
+		moves[idx] = temp;
+	}
+
 	return;
 }
 
