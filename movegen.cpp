@@ -46,7 +46,7 @@ PieceType getWhitePieceOnSquare(BoardInfo * boardInfo, U64 mask){
 	return type;
 }
 //PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
-int mvvlvaValues[] = {100,200,300,400,500,600};
+int mvvlvaValues[] = {1000000,2000000,3000000,4000000,5000000,10000000};
 BoardInfo * info;//Set me before calling addMove. TODO
 void addMove(Move move, ExtMove moves[],int index, bool isWhitePieceMoving, BoardInfo * info){
 	PieceType capturedPiece;
