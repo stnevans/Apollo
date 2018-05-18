@@ -298,6 +298,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 				ExtMove temp = moves[i];
 				moves[i] = moves[idx];
 				moves[idx] = temp;
+				return;
 			}
 		}
 	}
