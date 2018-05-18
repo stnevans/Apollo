@@ -253,7 +253,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	if(alphaHits != 0){
 		if(whiteToMove){
-				whiteHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
+			whiteHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}else{
 			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}
@@ -275,7 +275,6 @@ int Search::quiesce(Board * board, int alpha, int beta){
 		alpha = curEval;
 	}
 	
-
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = Movegen::getAllCaptures(board,moves);
 	for(int i = 0; i < moveCount; i++){
@@ -285,7 +284,7 @@ int Search::quiesce(Board * board, int alpha, int beta){
 		if(score >= beta){
 			return beta;
 		}
-		if(alpha > score){
+		if(score > alpha){
 			alpha = curEval;
 		}
 	}

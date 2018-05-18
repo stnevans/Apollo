@@ -4,7 +4,7 @@
 #include "bitboard.h"
 #include "movegen.h"
 //  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-int naivePieceValue[] = {100,301,305,500,900,1000000};
+int naivePieceValue[] = {100,301,320,500,900,1000000};
 int centralization[] = {0,0,0,0,0,0,0,0,
 						0,2,2,2,2,2,2,0,
 						0,2,4,4,4,4,2,0,
