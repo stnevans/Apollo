@@ -34,4 +34,8 @@ namespace Search{
 	void orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepth, int depth, int idx, bool white);
 	
 }
+
+
+extern U64 whiteHeuristic[64][64];
+extern U64 blackHeuristic[64][64];
 #endif

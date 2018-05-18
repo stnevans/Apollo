@@ -86,8 +86,8 @@ void Search::calculateMovetime(Board* b){
 Search::LINE lastPv;
 
 //Used for move ordering
-U64 whiteHeuristic[64][64];
-U64 blackHeuristic[64][64];
+U64 whiteHeuristic[64][64]={{0}};
+U64 blackHeuristic[64][64]={{0}};
 constexpr int MAX_DEPTH = 200;
 Move killerMoves[MAX_DEPTH][2] = {};
 
@@ -303,7 +303,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 	}
 	
 	if(whiteToMove){
-		int max = whiteHeuristic[from_sq(idx)][to_sq(idx)];
+		int max = moves[idx].score;
 		int maxIdx = idx;
 		for(int i = idx+1; i < numMoves; i++){
 			if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
@@ -312,8 +312,8 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 				moves[idx] = temp;
 				return;
 			}
-			if(whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
-				max = whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])];
+			if(moves[i].score > max){
+				max = moves[i].score;
 				maxIdx = i;
 			}
 		}
@@ -323,7 +323,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 			moves[idx] = temp;
 		}
 	}else{
-		int max = blackHeuristic[from_sq(idx)][to_sq(idx)];
+		int max = moves[idx].score;
 		int maxIdx = idx;
 		for(int i = idx+1; i < numMoves; i++){
 			if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
@@ -332,8 +332,8 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 				moves[idx] = temp;
 				return;
 			}
-			if(blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] > max){
-				max = blackHeuristic[from_sq(moves[i])][to_sq(moves[i])];
+			if(moves[i].score > max){
+				max = moves[i].score;
 				maxIdx = i;
 			}
 		}

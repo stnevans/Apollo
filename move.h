@@ -25,7 +25,7 @@ enum MoveType {
 };
 
 enum PieceType {
-  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, EMPTY
 };
 
 typedef int Move;

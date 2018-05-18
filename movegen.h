@@ -8,7 +8,7 @@ const U8 MAX_MOVES = 255;
 
 struct ExtMove{
 	Move move;
-	int value;
+	int score;
 };
 
 constexpr U8 from_sq(ExtMove m) {
@@ -31,7 +31,7 @@ constexpr PieceType PieceMoved(ExtMove m) {
   return PieceType((m.move >> 12) & 0x7);
 }
 inline bool operator<(const ExtMove& f, const ExtMove& s) {
-  return f.value < s.value;
+  return f.score < s.score;
 }
 U64 pseudoLegalKnightMoveDestinations(U8 loc, U64 targets);
 U64 pseudoLegalKingMoveDestinations(U8 loc, U64 targets) ;
@@ -47,7 +47,7 @@ U8 getBlackQueenMoves(BoardInfo *b, ExtMove moves[], int index);
 U8 getWhiteQueenMoves(BoardInfo *b, ExtMove moves[], int index);
 U8 getWhitePawnMoves(BoardInfo *b, ExtMove moves[], int index);
 U8 getBlackPawnMoves(BoardInfo *b, ExtMove moves[], int index);
-
+void addMove(Move move, ExtMove moves[],int index, bool isWhitePieceMoving, BoardInfo * info);
 Move* getMoveList();
 
 U8 getAllPseudoLegalMoves(BoardInfo * boardInfo, ExtMove list[]);

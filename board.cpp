@@ -36,7 +36,7 @@ int Board::staticExchange(Move m){
 	}
 	return staticExchange(from_sq(m), to_sq(m), PieceMoved(m), type); 
 }
-//Copied off chessprogramming! 
+//Static exchange is copied off chessprogramming
 int seeValues[] = {100,300,300,500,900,999999};
 int Board::staticExchange(U8 from, U8 to, PieceType moving, PieceType captured){
 	int gain[32];
@@ -125,7 +125,7 @@ int Board::totalMaterial(){
 	return popcnt(boardInfo->WhiteKnightBB)*KNIGHT+popcnt(boardInfo->WhiteRookBB)*ROOK+popcnt(boardInfo->WhiteBishopBB)*BISHOP+popcnt(boardInfo->WhiteQueenBB)*QUEEN + popcnt(boardInfo->BlackKnightBB)*KNIGHT+popcnt(boardInfo->BlackRookBB)*ROOK+popcnt(boardInfo->BlackBishopBB)*BISHOP+popcnt(boardInfo->BlackQueenBB)*QUEEN;
 }
 
-
+//Should make sure this works
 bool Board::isDraw(){
 	ExtMove moves[MAX_MOVES];
 	if(getAllLegalMoves(this, moves) == 0){
@@ -139,7 +139,6 @@ bool Board::isDraw(){
 		if(boards[i].zobrist == boardInfo->zobrist){
 			rep++;
 		}
-		//printf("%llx\n",boards[i].zobrist);
 		if(rep >= 2){
 			return true;
 		}
