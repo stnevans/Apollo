@@ -54,12 +54,15 @@ void Search::calculateMovetime(Board* b){
 	}
 	BoardInfo * info = b->currentBoard();
 	int moveNum = info->moveNumber;
+	int inc = 0;
 	int toMoveTime = 0;
 	if(config->wTime != 0 || config->bTime != 0){
 		if(b->currentBoard()->whiteToMove){
 			toMoveTime = config->wTime;
+			inc = config->winc;
 		}else{
 			toMoveTime = config->bTime;
+			inc = config->binc;
 		}
 		int expectedMoves = 0;
 		if(moveNum < 10){
@@ -78,7 +81,7 @@ void Search::calculateMovetime(Board* b){
 			expectedMoves = 320;
 		}	
 		int movesToGo = expectedMoves-moveNum;
-		config->movetime = toMoveTime/movesToGo;
+		config->movetime = toMoveTime/movesToGo+inc;
 	}
 	cfg->endTime = get_wall_time()+((cfg->movetime)/1000.0);
 }
