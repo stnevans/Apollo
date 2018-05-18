@@ -62,6 +62,7 @@ void addMove(Move move, ExtMove moves[],int index, bool isWhitePieceMoving, Boar
 	
 	//mvvlva
 	if(capturedPiece != EMPTY){
+		moves[index].move = setCapture(move);
 		moves[index].score = mvvlvaValues[capturedPiece] + PieceMoved(move);
 	}
 }

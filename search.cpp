@@ -158,7 +158,7 @@ Move Search::iterativeDeepening(Board * board){
 	return bestMove;
 }
 
-
+//Cache movesgenerated. An idea, but currently we call evaluate, which generates all 
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
 	LINE line;
 	int alphaHits = 0;
@@ -261,6 +261,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	score = alpha;
 	return alpha;
 }
+
+
+
 //Ignoring in the pv for now.
 int Search::quiesce(Board * board, int alpha, int beta){
 	int curEval = Eval::evaluate(board);
@@ -312,7 +315,8 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 			moves[idx] = temp;
 			return;
 		}
-		if(moves[i].score == 0){
+		//Non captures are sorted by heuristic. Captures are done by mvvlva
+		if(!isCapture(moves[i].move)){
 			if(whiteToMove){
 				moves[i].score = whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];
 			}else{
