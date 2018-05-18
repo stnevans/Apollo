@@ -285,7 +285,7 @@ int Search::quiesce(Board * board, int alpha, int beta){
 			return beta;
 		}
 		if(score > alpha){
-			alpha = curEval;
+			alpha = score;
 		}
 	}
 	return alpha;
