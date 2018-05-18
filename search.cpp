@@ -187,7 +187,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	
 	//Null Move
-	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck() && depth > 2){
+	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck()){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
@@ -229,9 +229,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		if(val >= beta){
 			//History Heuristic Update
 			if(whiteToMove){
-				whiteHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
+				whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
 			}else{
-				blackHeuristic[from_sq(moves[i])][to_sq(moves[i])] += depth*depth;
+				blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
 			}
 			
 			//Killer move update
@@ -308,7 +308,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 	
 	int max = moves[idx].score;
 	int maxIdx = idx;
-	for(int i = idx+1; i < numMoves; i++){
+	for(int i = idx; i < numMoves; i++){
 		if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
 			ExtMove temp = moves[i];
 			moves[i] = moves[idx];
