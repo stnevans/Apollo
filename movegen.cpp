@@ -14,8 +14,10 @@ Move * getMoveList(){
 
 PieceType getBlackPieceOnSquare(BoardInfo * boardInfo, U64 mask){
 	//Assumes we know there is a blackpiece being captured
-	PieceType type = PAWN;
-	if((boardInfo->BlackKnightBB & mask) != 0){
+	PieceType type = EMPTY;
+	if((boardInfo->BlackPawnBB &mask) != 0){
+		type=PAWN;
+	}else if((boardInfo->BlackKnightBB & mask) != 0){
 		type = KNIGHT;
 	}else if((boardInfo->BlackBishopBB& mask) != 0){
 		type=BISHOP;
