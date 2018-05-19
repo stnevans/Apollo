@@ -27,7 +27,7 @@ namespace Search{
 	Move getBestMove(Board * board);
 	Move getAlphabetaMove(Board * board, int depth, LINE * line);
 	void setConfig(Config * config);
-	bool isPositionFutile(Board *b, int alpha, int beta, int depthSearched, int depthToGo);
+	bool isPositionFutile(Board *b, int alpha, int beta, int depthSearched, int depthToGo, int curEval);
 	bool isMoveFutile(Board * b, int depthSearched, int depthToGo, int movesSearched, Move move, int alpha, int beta, int curEval);
 	void calculateMovetime(Board* b);
 	Move iterativeDeepening(Board * board);
