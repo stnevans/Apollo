@@ -285,8 +285,8 @@ int Search::quiesce(Board * board, int alpha, int beta){
 		
 		//Endgames, with an extra buffer in case of large piece captured.
 		if(board->currentSideMaterial() > 1500){
-			//IN quiescence, score represents the static exchange
-			if((moves[i].score + curEval + 100 < alpha)type_of(moves[i].move) == PROMOTION){
+			//IN quiescence, score represents the static exchange. Way too aggressive delta pruning.
+			if((moves[i].score + curEval < alpha) || type_of(moves[i].move) == PROMOTION){
 				continue;
 			}
 		}

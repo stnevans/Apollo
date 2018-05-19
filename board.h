@@ -79,5 +79,5 @@ class Board{
 		
 	
 };
-extern int capt;
+extern bool validCache;
 #endif

@@ -397,8 +397,6 @@ char Board::getPieceAtChar(U8 loc){
 		return ' ';
 	}
 }
-int capt = 0;
-
 void printMove1(Move m){
 	char from[3], to[3];
 	char* arr = getAlgebraicPos(from_sq(m));
