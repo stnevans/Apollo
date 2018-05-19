@@ -128,7 +128,7 @@ int Board::totalMaterial(){
 //Should make sure this works
 bool Board::isDraw(){
 	ExtMove moves[MAX_MOVES];
-	if(getAllLegalMoves(this, moves) == 0){
+	if(getAllLegalMovesSize(this, moves) == 0){
 		if(!(isSquareAttacked(boardInfo, boardInfo->WhiteKingBB, true)
 				|| isSquareAttacked(boardInfo, boardInfo->BlackKingBB, false))){
 			return true;
@@ -154,7 +154,7 @@ bool Board::legal() {
 bool Board::isCheckmate(){
 	ExtMove moves[MAX_MOVES];
 	if(isOwnKingInCheck()){
-		if(getAllLegalMoves(this, moves) == 0){
+		if(getAllLegalMovesSize(this, moves) == 0){
 			return true;
 		}
 	}
@@ -830,7 +830,7 @@ void Board::makeMove(Move move){
 	newInfo->whiteToMove=!newInfo->whiteToMove;
 	newInfo->zobrist^=whiteMove;
 	updateSpecialBB(newInfo);
-		
+	
 }
 
 void Board::undoMove(){

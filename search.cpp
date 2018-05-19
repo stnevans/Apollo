@@ -185,7 +185,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		return INT_MIN;
 	}
 	//Hope to prune!
-	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth)){
+	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
 		return beta;
 	}
 	
@@ -355,14 +355,13 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 * Called before movegenning. Basically tests if it's feasible for any move to make it bad enough that the value is below beta.
 */
 //TODO make sure this doesn't screw things up.
-bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, int depthToGo){
+bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, int depthToGo, int curEval){
 	if(depthToGo > futilitySize || depthSearched == 0){
 		return false;
 	}
 	if(b->isOwnKingInCheck()){
 		return false;
 	}
-	int curEval = Eval::evaluate(b);
 	int futilityValue = futilityMoves[depthToGo];
 	return curEval-futilityValue > beta;
 }

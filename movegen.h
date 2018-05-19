@@ -33,6 +33,7 @@ constexpr PieceType PieceMoved(ExtMove m) {
 inline bool operator<(const ExtMove& f, const ExtMove& s) {
   return f.score < s.score;
 }
+U8 getAllLegalMovesSize(Board* b, ExtMove list[]);
 U64 pseudoLegalKnightMoveDestinations(U8 loc, U64 targets);
 U64 pseudoLegalKingMoveDestinations(U8 loc, U64 targets) ;
 U8 getWhiteKingMoves(BoardInfo* b, ExtMove moves[], int index);
