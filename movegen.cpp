@@ -736,8 +736,11 @@ U8 Movegen::getAllCaptures(Board * b, ExtMove moves[]){
 	int j = 0;
 	for(int i = 0; i < movess; i++){
 		 if((getSquare[to_sq(moves[i])] & piecesToCap) != 0 || type_of(moves[i]) == PROMOTION){
-			if(b->staticExchange(moves[i].move) > 0){
-				moves[j++] = moves[i];
+			int see = b->staticExchange(moves[i].move);
+			if(see > 0){
+				moves[j].move = moves[i].move;
+				moves[j].score = see;
+				j++;
 			}
 		 }
 	}

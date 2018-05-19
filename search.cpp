@@ -281,6 +281,18 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = Movegen::getAllCaptures(board,moves);
 	for(int i = 0; i < moveCount; i++){
+		//delta pruning
+		
+		//Endgames, with an extra buffer in case of large piece captured.
+		if(board->currentSideMaterial() > 1500){
+			//IN quiescence, score represents the static exchange
+			if((moves[i].score + curEval + 100 < alpha)type_of(moves[i].move) == PROMOTION){
+				continue;
+			}
+		}
+		
+		
+		
 		board->makeMove(moves[i].move);
 		int score = -quiesce(board, -beta, -alpha);
 		board->undoMove();
