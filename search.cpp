@@ -120,13 +120,22 @@ Move Search::iterativeDeepening(Board * board){
 			blackHeuristic[i][j]=0;
 		}
 	}
+	int eval;
 	for(int depth = 1; depth < MAX_DEPTH; depth++){
 		nodeCount = 0;
 		LINE line;
 		currentlyFollowingPv = true;
 		canDoNullMove = true;
 		//Move curMove = getAlphabetaMove(board, depth, &line);
-		int eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+		if(depth > 1){	
+			int newEval = alphabetaHelper(board,eval-50,eval+50,depth,&line);
+			if((newEval <= eval-50) || (newEval >= eval+50)){
+				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+			}
+			eval = newEval;
+		}else{
+			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+		}
 		Move curMove = line.argmove[0];
 		if(get_wall_time() >= endTime){
 			return bestMove;
