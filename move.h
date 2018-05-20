@@ -28,7 +28,7 @@ enum PieceType {
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, EMPTY
 };
 
-typedef int Move;
+typedef U32 Move;
 
 constexpr Move createMove(U8 from, U8 to, PieceType pieceMoved){
 	return (pieceMoved<<12)+(from<<6)+to;
