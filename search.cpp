@@ -166,10 +166,12 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	LINE line;
 	int alphaHits = 0;
 	Move bestMove;
+	ExtMove moves[MAX_MOVES];
+	U8 moveCount = getAllLegalMoves(board,moves);
 	
 	int curEval = Eval::evaluate(board);
 
-	if(depth <= 0 || board->isCheckmate() || board->isDraw()){
+	if(depth <= 0 || moveCount == 0|| board->isRepetition()){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
 			pline->cmove = 0;
@@ -181,7 +183,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		return quiesce(board,alpha,beta);
 	}
 	
-	if(get_wall_time() >= endTime){
+	if((nodeCount/10000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
 	//Hope to prune!
@@ -206,8 +208,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 
 	canDoNullMove=true;
 
-	ExtMove moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
+	
 	bool whiteToMove = board->currentBoard()->whiteToMove;
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);

@@ -134,6 +134,10 @@ bool Board::isDraw(){
 			return true;
 		}
 	}
+	return isRepetition();
+}
+
+bool Board::isRepetition(){
 	int rep = 0;
 	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2; i++){
 		if(boards[i].zobrist == boardInfo->zobrist){
@@ -145,6 +149,7 @@ bool Board::isDraw(){
 	}
 	return false;
 }
+
 bool Board::legal() {
 	if (!boardInfo->whiteToMove){
 		return !isSquareAttacked(currentBoard(), boardInfo->WhiteKingBB, true);
