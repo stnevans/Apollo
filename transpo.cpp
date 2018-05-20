@@ -20,6 +20,8 @@ tt_entry * TT::probe(U64 key){
 }
 void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 	tt_entry * entry = &tt[key%numEntries];
+	
+	//if should replace:
 	entry->hash = key;
 	entry->eval = eval;
 	entry->depth = depth;

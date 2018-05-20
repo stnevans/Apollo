@@ -7,7 +7,7 @@
 #include "movegen.h"
 #include "bitboard.h"
 #include "uci.h" //For timing
-
+#include "transpo.h"
 #ifdef __linux__
 #include <stdio.h>
 #include "string.h"
@@ -126,8 +126,8 @@ Move Search::iterativeDeepening(Board * board){
 		currentlyFollowingPv = true;
 		canDoNullMove = true;
 		//Move curMove = getAlphabetaMove(board, depth, &line);
-		Move curMove = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
-		curMove = line.argmove[0];
+		int eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+		Move curMove = line.argmove[0];
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
@@ -166,6 +166,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	LINE line;
 	int alphaHits = 0;
 	Move bestMove;
+	
+	
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
 	
@@ -182,8 +184,30 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		nodeCount++;
 		return quiesce(board,alpha,beta);
 	}
+		
 	
-	if((nodeCount/10000 == 0) && get_wall_time() >= endTime){
+
+	//Handle transposition table here:
+	BoardInfo* currentBoard = board->currentBoard();
+	tt_entry* entry = TT::probe(currentBoard->zobrist);
+	if(entry->hash == currentBoard->zobrist){
+		if(entry->depth >= depth){
+			int eval = entry->eval;
+			if(eval <= beta && eval >= alpha){
+				//if checkmate, adjust ply
+				if(eval < (INT_MIN-1200)){
+					
+				}else if(eval > (-(INT_MIN-1200))){
+					
+				}
+				return eval;
+			}
+		}
+	}
+	
+
+	
+	if((nodeCount/20000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
 	//Hope to prune!
@@ -230,23 +254,25 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		board->undoMove();
 		
 		//Beta Cutoff
-		if(val >= beta){
-			//History Heuristic Update
-			if(whiteToMove){
-				whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
-			}else{
-				blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
-			}
-			
-			//Killer move update
-			killerMoves[depth][1] = killerMoves[depth][0];
-			killerMoves[depth][0] = moves[i].move;
-			
-			score = beta;
-			return beta;
-		}
+		
 		//Update the pv
 		if(val > alpha){
+			if(val >= beta){
+				//History Heuristic Update
+				if(whiteToMove){
+					whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
+				}else{
+					blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
+				}
+				
+				//Killer move update
+				killerMoves[depth][1] = killerMoves[depth][0];
+				killerMoves[depth][0] = moves[i].move;
+				
+				score = beta;
+				return beta;
+			}
+			
 			alpha = val;
 			pline->argmove[0] = moves[i].move;
 			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
@@ -263,6 +289,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		}
 	}
 	score = alpha;
+	TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
 	return alpha;
 }
 
@@ -308,19 +335,31 @@ int Search::quiesce(Board * board, int alpha, int beta){
 }
 void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
 	//if tt:probe(board) 
-	
-	//Order by pv move without testing if we are in the pv.
-	if(currentlyFollowingPv && depth > 1){
-		for(int i = idx; i < numMoves; i++){
-			if(lastPv.argmove[curDepthSearched] == moves[i].move){
-				ExtMove temp = moves[i];
-				moves[i] = moves[idx];
-				moves[idx] = temp;
-				return;
+	tt_entry* entry = TT::probe(board->currentBoard()->zobrist);
+	if(idx < 3){
+		bool rightPos = false;
+		if(entry->hash == board->currentBoard()->zobrist){
+			for(int i = idx; i < numMoves; i++){
+				if(entry->bestMove == moves[i].move){
+					ExtMove temp = moves[i];
+					moves[i] = moves[idx];
+					moves[idx] = temp;
+					return;
+				}
+			}
+		}
+		//Order by pv move without testing if we are in the pv.
+		if(currentlyFollowingPv && depth > 1){
+			for(int i = idx; i < numMoves; i++){
+				if(lastPv.argmove[curDepthSearched] == moves[i].move){
+					ExtMove temp = moves[i];
+					moves[i] = moves[idx];
+					moves[idx] = temp;
+					return;
+				}
 			}
 		}
 	}
-	
 	int max = moves[idx].score;
 	int maxIdx = idx;
 	for(int i = idx; i < numMoves; i++){

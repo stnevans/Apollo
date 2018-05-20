@@ -7,7 +7,13 @@ struct tt_entry {
     U8	 depth;
     U8   flags;
     Move  bestMove;
-} extern * tt;
+};
+typedef tt_entry tt_entry;
+enum ettflag {
+    TT_EXACT,
+    TT_ALPHA,
+    TT_BETA
+};
 
 namespace TT{
 	void setSize(int kb);

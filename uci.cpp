@@ -8,6 +8,7 @@
 #include "eval.h"
 #include "search.h"
 #include "bbmagic.h"
+#include "transpo.h"
 #ifdef __linux__
 #include <stdio.h>
 #include "string.h"
@@ -208,6 +209,8 @@ bool UCI::loop(){
 	Board b;
 	BoardInfo info;
 	std::string token, cmd;
+	
+	TT::setSize(1048576*16);
 	b.readFromFen(StartPositionFEN,&info);
 	while(true){
 		getline(cin,cmd);

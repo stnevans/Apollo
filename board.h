@@ -55,6 +55,7 @@ class Board{
 		bool legal();
 		bool isCheckmate();
 		bool isMoveCheck(Move m);
+		bool isRepetition();
 		int currentSideMaterial();
 		int totalMaterial();
 
