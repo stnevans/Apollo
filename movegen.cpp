@@ -151,11 +151,13 @@ U8 getAllLegalMoves(Board* b, ExtMove list[]){
 	}
 	if(check){
 		for (int i = 0; i < count; i++) {
-			b->fastMakeMove(list[i].move);
-			if(b->legal()){
-				list[j++] = list[i];
+			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move)){
+				b->fastMakeMove(list[i].move);
+				if(b->legal()){
+					list[j++] = list[i];
+				}
+				b->undoMove();
 			}
-			b->undoMove();
 		}
 	}else{
 		for (int i = 0; i < count; i++) {

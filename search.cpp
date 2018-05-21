@@ -117,6 +117,8 @@ int mateIn(int eval, BoardInfo * b){
 	}
 	return 0;
 }
+
+
 Move Search::iterativeDeepening(Board * board){
 	
 	endTime = cfg->endTime;
@@ -163,7 +165,7 @@ Move Search::iterativeDeepening(Board * board){
 			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score,board->currentBoard()),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}else{
 			if(!board->isCheckmate()){
-				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+				printf("info depth %i score cp %i nodes %llu nps %lu time %i opt %llu bad %llu pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000),optimalMoveOrder,badMoveOrder);
 			}
 		}
 		int pvLength = 0;
@@ -227,6 +229,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	
 
 	//Handle transposition table here:
+	//The issue with copying a table in the mainline is repetition is ignored. Not fully sure why however.
 	BoardInfo* currentBoard = board->currentBoard();
 	tt_entry* entry = TT::probe(currentBoard->zobrist);
 	if(entry->hash == currentBoard->zobrist){
@@ -300,7 +303,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		board->makeMove(moves[i].move);
 		int val;
 		//LMR: may be buggy.
-		if(board->currentSideMaterial() > 1000 && i > moveCount/2){
+		if(board->currentSideMaterial() > 1000 && i > moveCount/3){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
 			if(val > alpha){
 				alpha = -alphabetaHelper(board, -beta, -alpha, depth-1);
@@ -308,7 +311,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		}else{
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 		}
-		//val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 		board->undoMove();
 		
 		
@@ -316,6 +318,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		
 		//Update the pv
 		if(val > alpha){
+			if(i ==0){
+				optimalMoveOrder++;
+			}else{
+				badMoveOrder++;
+			}
 			bestMove = moves[i].move;
 			if(val >= beta){
 				//History Heuristic Update
@@ -334,11 +341,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 				return beta;
 			}
 			
-			alpha = val;
-			
-		//	pline->argmove[0] = moves[i].move;
-			//memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-			//pline->cmove = line.cmove + 1;
+			alpha = val;			
 			alphaHits++;
 		}
 	}
@@ -351,6 +354,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}
 		TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
+	}else{
+		TT::save(currentBoard->zobrist,alpha,TT_ALPHA,moves[0].move,depth);
 	}
 	/*if(alphaHits != 0){
 		if(moveCount >= 1){
