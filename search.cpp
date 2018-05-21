@@ -109,11 +109,11 @@ const int nullMoveEndgame = 350;
 U64 optimalMoveOrder = 0;
 U64 badMoveOrder=0;
 
-int mateIn(int eval){
+int mateIn(int eval, BoardInfo * b){
 	if(eval < INT_MIN+1200){
-		return -(eval-(INT_MIN+1000));
+		return ((-(eval-(INT_MIN+1000)))+b->moveNumber)/2;
 	}else if(eval > -(INT_MIN+1200)){
-		return (-eval - (INT_MIN+1000));
+		return ((-eval - (INT_MIN+1000))-b->moveNumber+1)/2;
 	}
 	return 0;
 }
@@ -159,8 +159,8 @@ Move Search::iterativeDeepening(Board * board){
 		
 		//Print info about the search we just did
 		//Not really the true nps.
-		if(mateIn(score) != 0){
-			
+		if(mateIn(score, board->currentBoard()) != 0){
+			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score,board->currentBoard()),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}else{
 			if(!board->isCheckmate()){
 				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
@@ -183,7 +183,6 @@ Move Search::iterativeDeepening(Board * board){
 			board->undoMove();
 		}
 		printf("\n");
-		printf("%i\n",mateIn(score));
 
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
