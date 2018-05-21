@@ -72,7 +72,7 @@ int main(){
 	initBBMagic();
 	b.readFromFen(startFen,&bi);
 	
-	//printf("%s %i\n", b.getFen().c_str(), b.currentBoard()->moveNumber);
+	/*//printf("%s %i\n", b.getFen().c_str(), b.currentBoard()->moveNumber);
 
 	assert(strcmp(b.getFen().c_str(),startFen.c_str()) == 0);
 	int fromSq = getSq(RANK_2,FILE_E);
@@ -108,7 +108,7 @@ int main(){
 	
 	startFen="n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1";
 	b.readFromFen(startFen,&bi);
-	printf("Passed Tests\n");
+	printf("Passed Tests\n");*/
 	UCI::loop();
 	return 0;
 }

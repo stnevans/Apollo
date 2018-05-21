@@ -210,7 +210,7 @@ bool UCI::loop(){
 	BoardInfo info;
 	std::string token, cmd;
 	
-	TT::setSize(1048576*16);
+	TT::setSize(1048576*32);
 	b.readFromFen(StartPositionFEN,&info);
 	while(true){
 		getline(cin,cmd);
@@ -220,7 +220,7 @@ bool UCI::loop(){
 			return false;
 		}
 		if(token == "uci"){
-			std::cout << "id name Apollo 1.1\n";
+			std::cout << "id name Apollo Release 1.1\n";
 			std::cout << "id author Stuart Nevans Locke\n\n";
 			printUciOptions();
 			std::cout << "uciok" << std::endl;

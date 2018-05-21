@@ -19,7 +19,7 @@ void Search::setConfig(Search::Config * config){
 }
 
 constexpr int futilitySize = 4; 
-int futilityMoves[] = {0,150,200,400,600};
+int futilityMoves[] = {0,100,200,400,600};
 
 bool inline isCapture(BoardInfo * b, Move m){
 	//must be prior to playing move
@@ -232,22 +232,22 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	
 
 	
-	if((nodeCount/20000 == 0) && get_wall_time() >= endTime){
+	if((nodeCount/10000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
 	//Hope to prune!
-	/*if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
+	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
 		return beta;
-	}*/	
+	}
 	
 	//Null Move
 	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck()){
 		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
-		int reduction = 3;
-		if(depth > 5){
-			reduction = 4;
+		int reduction = 4;
+		if(depth > 7){
+			reduction = 5;
 		}
 		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
 		board->undoMove();
@@ -260,11 +260,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	canDoNullMove=true;
 
 	
-	bool whiteToMove = board->currentBoard()->whiteToMove;
+	bool whiteToMove = currentBoard->whiteToMove;
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
 
-		//if(isMoveFutile(board,startDepth-depth,depth,i,moves[i],alpha,beta,curEval)){
+		//if(isMoveFutile(board,startDepth-depth,depth,i,moves[i].move,alpha,beta,curEval)){
 		//	continue;
 		//}
 
@@ -275,9 +275,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		//Note: LMR can sometimes cause pv lines to be too short. A problem.
 		//if(i < 2*moveCount/3 || depth < 3 || board->currentSideMaterial() < 1000){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
-		//}else if(i < 3*moveCount/4) {
-	//		val = -alphabetaHelper(board, -beta, -alpha, depth-2, &line);
-		//}
 		board->undoMove();
 		
 		//Beta Cutoff
@@ -291,7 +288,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 				}else{
 					blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
 				}
-				
+
 				//Killer move update
 				killerMoves[depth][1] = killerMoves[depth][0];
 				killerMoves[depth][0] = moves[i].move;
@@ -310,6 +307,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 			bestMove = moves[i].move;
 		}
 	}
+	
 	if(alphaHits != 0){
 		if(whiteToMove){
 			whiteHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
@@ -326,6 +324,16 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 
 //Ignoring in the pv for now.
 int Search::quiesce(Board * board, int alpha, int beta){
+	/*
+	BoardInfo* currentBoard = board->currentBoard();
+	tt_entry* entry = TT::probe(currentBoard->zobrist);
+	if(entry->hash == currentBoard->zobrist){
+			int eval = entry->eval;
+			if(entry->flags == TT_EXACT){
+				return eval;
+			}
+	}*/
+	
 	int curEval = Eval::evaluate(board);
 
 	if(curEval >= beta){
@@ -337,6 +345,7 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = Movegen::getAllCaptures(board,moves);
+	Move bestMove;
 	for(int i = 0; i < moveCount; i++){
 		//delta pruning
 		
@@ -357,9 +366,13 @@ int Search::quiesce(Board * board, int alpha, int beta){
 			return beta;
 		}
 		if(score > alpha){
+			bestMove = moves[i].move;
 			alpha = score;
 		}
 	}
+		
+	//TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, 0);
+
 	return alpha;
 }
 void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
@@ -390,6 +403,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 			}
 		}
 	}
+	
 	int max = moves[idx].score;
 	int maxIdx = idx;
 	for(int i = idx; i < numMoves; i++){
