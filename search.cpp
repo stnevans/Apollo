@@ -173,7 +173,6 @@ Move Search::iterativeDeepening(Board * board){
 		//	printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
 		//}
 		printf("\n");
-		printf("z: %llx move: ", TT::probe(board->currentBoard()->zobrist)->hash, TT::probe(board->currentBoard()->zobrist)->bestMove);
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
