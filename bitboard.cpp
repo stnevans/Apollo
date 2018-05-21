@@ -14,11 +14,22 @@
 
 U8 popcnt(U64 bb){
 	#ifdef _WIN32
+	#ifdef _WIN64
 		return __popcnt64(bb);
+	#else
+		   int count = 0;
+	   while (bb) {
+		   count++;
+		  bb &= bb - 1; // reset LS1B
+	   }
+	   return count;
+	#endif
 	#else
 		return __builtin_popcountll(bb);
 	#endif
 }
+
+
 int trailingZeroCount(U64 bb) {
    static const int lookup67[67+1] = {
       64,  0,  1, 39,  2, 15, 40, 23,

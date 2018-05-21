@@ -105,6 +105,9 @@ const int nullMoveEndgame = 350;
 /*
 * The main search function. 
 */
+
+U64 optimalMoveOrder = 0;
+U64 badMoveOrder=0;
 Move Search::iterativeDeepening(Board * board){
 	
 	endTime = cfg->endTime;
@@ -121,7 +124,7 @@ Move Search::iterativeDeepening(Board * board){
 	}
 	int eval;
 	for(int depth = 1; depth < MAX_DEPTH; depth++){
-		nodeCount = 0;
+		nodeCount = 0;optimalMoveOrder=0;badMoveOrder=0;
 		LINE line;
 		
 		currentlyFollowingPv = true;
@@ -130,15 +133,15 @@ Move Search::iterativeDeepening(Board * board){
 		
 		//Aspiration window is handled here.
 		if(depth > 1){	
-			int newEval = alphabetaHelper(board,eval-50,eval+50,depth,&line);
+			int newEval = alphabetaHelper(board,eval-50,eval+50,depth);
 			if((newEval <= eval-50) || (newEval >= eval+50)){
-				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth);
 			}
 			eval = newEval;
 		}else{
-			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&line);
+			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth);
 		}
-		Move curMove = line.argmove[0];
+		Move curMove = TT::probe(board->currentBoard()->zobrist)->bestMove;
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
@@ -149,9 +152,26 @@ Move Search::iterativeDeepening(Board * board){
 		if(!board->isCheckmate()){
 			printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}
-		for(int j = 0; j < line.cmove; j++){
-			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
+		int pvLength = 0;
+		char buffer[100];
+		
+		for(int i = 0; i < depth; i++){
+			if(TT::probe(board->currentBoard()->zobrist)->hash == board->currentBoard()->zobrist){
+				if(TT::probe(board->currentBoard()->zobrist)->bestMove != 0){
+					printf(" %s",UCI::getMoveString(TT::probe(board->currentBoard()->zobrist)->bestMove,buffer));
+					board->makeMove(TT::probe(board->currentBoard()->zobrist)->bestMove);
+					pvLength++;
+				}
+			}else{
+				break;
+			}
 		}
+		for(int i = 0; i < pvLength; i++){
+			board->undoMove();
+		}
+		//for(int j = 0; j < line.cmove; j++){
+		//	printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
+		//}
 		printf("\n");
 		
 		if(cfg->depth!=0){
@@ -172,11 +192,10 @@ Move Search::iterativeDeepening(Board * board){
 }
 
 //Cache movesgenerated. An idea, but currently we call evaluate, which generates all 
-int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
+int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	LINE line;
 	int alphaHits = 0;
 	Move bestMove;
-	
 	
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
@@ -186,7 +205,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	if(depth <= 0 || moveCount == 0|| board->isRepetition()){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
-			pline->cmove = 0;
+			//pline->cmove = 0;
 		}else{
 			score = curEval;
 			return curEval;
@@ -211,7 +230,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 					
 				}
 				
-				if(!currentlyFollowingPv && entry->flags == TT_EXACT){
+				if(entry->flags == TT_EXACT && (!currentlyFollowingPv || (eval < beta && eval > alpha))){
 					return eval;
 				}else if(entry->flags == TT_BETA){
 					if(!currentlyFollowingPv){
@@ -249,7 +268,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		if(depth > 7){
 			reduction = 5;
 		}
-		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
+		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction);
 		board->undoMove();
 		canDoNullMove=true;
 		if(val >= beta){
@@ -274,7 +293,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		//Attempt at LMR -- no LMR in endgame because moves that appear suboptimal are often better than expected.
 		//Note: LMR can sometimes cause pv lines to be too short. A problem.
 		//if(i < 2*moveCount/3 || depth < 3 || board->currentSideMaterial() < 1000){
-			val = -alphabetaHelper(board, -beta, -alpha, depth-1, &line);
+		val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 		board->undoMove();
 		
 		//Beta Cutoff
@@ -300,9 +319,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 			
 			alpha = val;
 			
-			pline->argmove[0] = moves[i].move;
-			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-			pline->cmove = line.cmove + 1;
+		//	pline->argmove[0] = moves[i].move;
+			//memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+			//pline->cmove = line.cmove + 1;
 			alphaHits++;
 			bestMove = moves[i].move;
 		}
@@ -317,6 +336,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	}
 	score = alpha;
 	TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
+
 	return alpha;
 }
 
@@ -377,13 +397,12 @@ int Search::quiesce(Board * board, int alpha, int beta){
 }
 void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
 	//if tt:probe(board) 
-	if(idx < 3){
+	if(idx < 1){
 		tt_entry* entry = TT::probe(board->currentBoard()->zobrist);
-
-		bool rightPos = false;
 		if(entry->hash == board->currentBoard()->zobrist){
+			Move entryMove = entry->bestMove;
 			for(int i = idx; i < numMoves; i++){
-				if(entry->bestMove == moves[i].move){
+				if(entryMove==moves[i].move){
 					ExtMove temp = moves[i];
 					moves[i] = moves[idx];
 					moves[idx] = temp;
@@ -392,7 +411,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 			}
 		}
 		//Order by pv move without testing if we are in the pv.
-		if(currentlyFollowingPv && depth > 1){
+		/*if(currentlyFollowingPv && depth > 1){
 			for(int i = idx; i < numMoves; i++){
 				if(lastPv.argmove[curDepthSearched] == moves[i].move){
 					ExtMove temp = moves[i];
@@ -401,7 +420,7 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 					return;
 				}
 			}
-		}
+		}*/
 	}
 	
 	int max = moves[idx].score;

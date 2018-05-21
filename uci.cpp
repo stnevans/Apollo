@@ -65,30 +65,31 @@ double get_cpu_time(){
 char* UCI::getMoveString(Move m, char* ret){
 	char from[3], to[3];
 	char* arr = getAlgebraicPos(from_sq(m));
-	from[0] = arr[0];from[1]=arr[1];from[2]=arr[2];
+	from[0] = arr[0];from[1]=arr[1];from[2]=arr[2];from[3]=arr[3];
 	
 	arr = getAlgebraicPos(to_sq(m));
-	to[0] = arr[0];to[1]=arr[1];to[2]=arr[2];
+
+	to[0] = arr[0];to[1]=arr[1];to[2]=arr[2];to[3]=arr[3];
 	if(promotion_type(m)!=PAWN && promotion_type(m) != KING){
 		switch(promotion_type(m)){
 			case KNIGHT:
-				snprintf(ret,sizeof(ret),"%s%sn",from,to);
+				snprintf(ret,10,"%s%sn",from,to);
 				break;
 			case QUEEN:
-				snprintf(ret,sizeof(ret),"%s%sq",from,to);
+				snprintf(ret,10,"%s%sq",from,to);
 				break;
 			case ROOK:
-				snprintf(ret,sizeof(ret),"%s%sr",from,to);
+				snprintf(ret,10,"%s%sr",from,to);
 				break;
 			case BISHOP:
-				snprintf(ret,sizeof(ret),"%s%sb",from,to);
+				snprintf(ret,10,"%s%sb",from,to);
 				break;
 			default:
-				snprintf(ret,sizeof(ret),"%s%su",from,to);
+				snprintf(ret,10,"%s%su",from,to);
 				break;
 			}
 	}else{
-		snprintf(ret,sizeof(ret),"%s%s",from,to);
+		snprintf(ret,10,"%s%s",from,to);
 	}
 	return ret;
 }

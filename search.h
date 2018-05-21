@@ -22,7 +22,7 @@ namespace Search{
 	
 	typedef struct LINE LINE;
 	typedef struct Config Config;
-	int alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline);
+	int alphabetaHelper(Board * board, int alpha, int beta, int depth);
 	int quiesce(Board * board, int alpha, int beta);
 	Move getBestMove(Board * board);
 	Move getAlphabetaMove(Board * board, int depth, LINE * line);

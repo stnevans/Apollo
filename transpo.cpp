@@ -18,13 +18,15 @@ void TT::setSize(int size){
 tt_entry * TT::probe(U64 key){
 	return &tt[key%numEntries];
 }
+#include "uci.h"
 void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 	tt_entry * entry = &tt[key%numEntries];
-	
 	//if should replace:
-	entry->hash = key;
-	entry->eval = eval;
-	entry->depth = depth;
-	entry->bestMove=bestMove;
-	entry->flags=flags;
+	if(depth >= entry->depth){
+		entry->hash = key;
+		entry->eval = eval;
+		entry->depth = depth;
+		entry->bestMove=bestMove;
+		entry->flags=flags;
+	}
 }
