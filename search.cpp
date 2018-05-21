@@ -240,7 +240,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 					
 				}
 				
-				if(entry->flags == TT_EXACT && (!currentlyFollowingPv || (eval < beta && eval > alpha))){
+				if(entry->flags == TT_EXACT && (!currentlyFollowingPv)){
 					return eval;
 				}else if(entry->flags == TT_BETA){
 					if(!currentlyFollowingPv){
