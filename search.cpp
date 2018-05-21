@@ -8,8 +8,8 @@
 #include "bitboard.h"
 #include "uci.h" //For timing
 #include "transpo.h"
-#ifdef __linux__
 #include <stdio.h>
+#ifdef __linux__
 #include "string.h"
 #endif
 
@@ -299,12 +299,18 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 
 		board->makeMove(moves[i].move);
 		int val;
-		
-		//Attempt at LMR -- no LMR in endgame because moves that appear suboptimal are often better than expected.
-		//Note: LMR can sometimes cause pv lines to be too short. A problem.
-		//if(i < 2*moveCount/3 || depth < 3 || board->currentSideMaterial() < 1000){
-		val = -alphabetaHelper(board, -beta, -alpha, depth-1);
+		//LMR: may be buggy.
+		if(board->currentSideMaterial() > 1000 && i > moveCount/2){
+			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
+			if(val > alpha){
+				alpha = -alphabetaHelper(board, -beta, -alpha, depth-1);
+			}
+		}else{
+			val = -alphabetaHelper(board, -beta, -alpha, depth-1);
+		}
+		//val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 		board->undoMove();
+		
 		
 		//Beta Cutoff
 		

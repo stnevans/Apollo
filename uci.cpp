@@ -157,6 +157,8 @@ void UCI::go(Board * board, istringstream *parser){
 			(*parser) >> cfg.binc;
 		}else if(token == "movetime"){
 			(*parser) >> cfg.movetime;
+		}else if(token == "infinite"){
+			cfg.depth = 20;
 		}
 	}
 	Search::setConfig(&cfg);
