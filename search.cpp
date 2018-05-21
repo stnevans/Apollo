@@ -99,7 +99,6 @@ double endTime; //Used to determine when to leave deepening
 int score = 0; //Used to communicate the score of the best move returned by ab search.
 
 U64 nodeCount = 0; //Just nodes where eval is called
-
 bool currentlyFollowingPv;
 bool canDoNullMove;
 const int nullMoveEndgame = 350;
@@ -124,9 +123,12 @@ Move Search::iterativeDeepening(Board * board){
 	for(int depth = 1; depth < MAX_DEPTH; depth++){
 		nodeCount = 0;
 		LINE line;
+		
 		currentlyFollowingPv = true;
 		canDoNullMove = true;
 		//Move curMove = getAlphabetaMove(board, depth, &line);
+		
+		//Aspiration window is handled here.
 		if(depth > 1){	
 			int newEval = alphabetaHelper(board,eval-50,eval+50,depth,&line);
 			if((newEval <= eval-50) || (newEval >= eval+50)){
@@ -151,7 +153,6 @@ Move Search::iterativeDeepening(Board * board){
 			printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
 		}
 		printf("\n");
-		
 		
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
@@ -202,15 +203,30 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	if(entry->hash == currentBoard->zobrist){
 		if(entry->depth >= depth){
 			int eval = entry->eval;
-			if(eval <= beta && eval >= alpha){
+			//if(eval <= beta && eval >= alpha){
 				//if checkmate, adjust ply
-				if(eval < (INT_MIN-1200)){
+				if(eval < (INT_MIN+1200)){
 					
-				}else if(eval > (-(INT_MIN-1200))){
+				}else if(eval > (-(INT_MIN+1200))){
 					
 				}
-				return eval;
-			}
+				
+				if(!currentlyFollowingPv && entry->flags == TT_EXACT){
+					return eval;
+				}else if(entry->flags == TT_BETA){
+					if(!currentlyFollowingPv){
+						if(eval >= beta){
+							return beta;
+						}
+					}
+				}else if(entry->flags == TT_ALPHA){
+					if(!currentlyFollowingPv){
+						if(eval <= alpha){
+							return alpha;
+						}
+					}
+				}
+			//}
 		}
 	}
 	
@@ -220,9 +236,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		return INT_MIN;
 	}
 	//Hope to prune!
-	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
+	/*if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
 		return beta;
-	}
+	}*/	
 	
 	//Null Move
 	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck()){
@@ -236,7 +252,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
 		board->undoMove();
 		canDoNullMove=true;
-		if(val >= beta){return beta;}
+		if(val >= beta){
+			return beta;
+		}
 	}
 
 	canDoNullMove=true;
@@ -279,10 +297,12 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 				killerMoves[depth][0] = moves[i].move;
 				
 				score = beta;
+				TT::save(currentBoard->zobrist, alpha, TT_BETA, bestMove, depth);
 				return beta;
 			}
 			
 			alpha = val;
+			
 			pline->argmove[0] = moves[i].move;
 			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
 			pline->cmove = line.cmove + 1;
@@ -344,8 +364,9 @@ int Search::quiesce(Board * board, int alpha, int beta){
 }
 void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
 	//if tt:probe(board) 
-	tt_entry* entry = TT::probe(board->currentBoard()->zobrist);
 	if(idx < 3){
+		tt_entry* entry = TT::probe(board->currentBoard()->zobrist);
+
 		bool rightPos = false;
 		if(entry->hash == board->currentBoard()->zobrist){
 			for(int i = idx; i < numMoves; i++){
