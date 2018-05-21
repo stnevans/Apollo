@@ -173,7 +173,7 @@ Move Search::iterativeDeepening(Board * board){
 		//	printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
 		//}
 		printf("\n");
-		
+		printf("z: %llx move: ", TT::probe(board->currentBoard()->zobrist)->hash, TT::probe(board->currentBoard()->zobrist)->bestMove);
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
@@ -195,11 +195,11 @@ Move Search::iterativeDeepening(Board * board){
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	LINE line;
 	int alphaHits = 0;
-	Move bestMove;
 	
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
-	
+	Move bestMove=0;
+
 	int curEval = Eval::evaluate(board);
 
 	if(depth <= 0 || moveCount == 0|| board->isRepetition()){
@@ -300,6 +300,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		
 		//Update the pv
 		if(val > alpha){
+			bestMove = moves[i].move;
 			if(val >= beta){
 				//History Heuristic Update
 				if(whiteToMove){
@@ -323,7 +324,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			//memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
 			//pline->cmove = line.cmove + 1;
 			alphaHits++;
-			bestMove = moves[i].move;
 		}
 	}
 	
@@ -335,6 +335,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		}
 	}
 	score = alpha;
+	if(alphaHits == 0){
+		if(moveCount > 1){
+			bestMove = moves[0].move;
+		}
+	}
 	TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
 
 	return alpha;
