@@ -135,7 +135,7 @@ void UCI::setPosition(Board * board, BoardInfo* info, istringstream* parser){
 	}
 }
 void printUciOptions(){
-	
+	std::cout<<"option name Hash type spin default 32 min 1 max 1048576\n";
 }
 void setOption(istringstream *parser){
 
@@ -240,7 +240,12 @@ bool UCI::loop(){
 		}else if(token == "eval"){
 			printf("Current Position: %i\n",Eval::evaluate(&b));
 		}else if(token == "d"){
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nEval %i\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist, Eval::evaluate(&b));
+			Move bestMove=65;
+			if(TT::probe(b.currentBoard()->zobrist)->hash == b.currentBoard()->zobrist){
+				bestMove = TT::probe(b.currentBoard()->zobrist)->bestMove;
+			}
+			char buffer[100];
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nEval %i\nHash Move: %s\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist, Eval::evaluate(&b), UCI::getMoveString(bestMove,buffer));
 		}
 	}
 	return true;

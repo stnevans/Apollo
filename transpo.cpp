@@ -23,6 +23,9 @@ void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 	tt_entry * entry = &tt[key%numEntries];
 	//if should replace:
 	if(depth >= entry->depth){
+		if(bestMove == 0){
+			printf("Z: %llx", key);
+		}
 		entry->hash = key;
 		entry->eval = eval;
 		entry->depth = depth;

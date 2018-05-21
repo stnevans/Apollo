@@ -81,7 +81,7 @@ void Search::calculateMovetime(Board* b){
 			expectedMoves = 320;
 		}	
 		int movesToGo = expectedMoves-moveNum;
-		config->movetime = toMoveTime/movesToGo+inc;
+		config->movetime = toMoveTime/movesToGo;
 	}
 	cfg->endTime = get_wall_time()+((cfg->movetime)/1000.0);
 }
@@ -108,6 +108,15 @@ const int nullMoveEndgame = 350;
 
 U64 optimalMoveOrder = 0;
 U64 badMoveOrder=0;
+
+int mateIn(int eval){
+	if(eval < INT_MIN+1200){
+		return -(eval-(INT_MIN+1000));
+	}else if(eval > -(INT_MIN+1200)){
+		return (-eval - (INT_MIN+1000));
+	}
+	return 0;
+}
 Move Search::iterativeDeepening(Board * board){
 	
 	endTime = cfg->endTime;
@@ -133,7 +142,8 @@ Move Search::iterativeDeepening(Board * board){
 		
 		//Aspiration window is handled here.
 		if(depth > 1){	
-			int newEval = alphabetaHelper(board,eval-50,eval+50,depth);
+			int newEval;
+			newEval = alphabetaHelper(board,eval-50,eval+50,depth);
 			if((newEval <= eval-50) || (newEval >= eval+50)){
 				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth);
 			}
@@ -149,12 +159,15 @@ Move Search::iterativeDeepening(Board * board){
 		
 		//Print info about the search we just did
 		//Not really the true nps.
-		if(!board->isCheckmate()){
-			printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+		if(mateIn(score) != 0){
+			
+		}else{
+			if(!board->isCheckmate()){
+				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+			}
 		}
 		int pvLength = 0;
 		char buffer[100];
-		
 		for(int i = 0; i < depth; i++){
 			if(TT::probe(board->currentBoard()->zobrist)->hash == board->currentBoard()->zobrist){
 				if(TT::probe(board->currentBoard()->zobrist)->bestMove != 0){
@@ -169,10 +182,9 @@ Move Search::iterativeDeepening(Board * board){
 		for(int i = 0; i < pvLength; i++){
 			board->undoMove();
 		}
-		//for(int j = 0; j < line.cmove; j++){
-		//	printf(" %s",UCI::getMoveString(line.argmove[j],buffer));
-		//}
 		printf("\n");
+		printf("%i\n",mateIn(score));
+
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
@@ -325,22 +337,24 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			alphaHits++;
 		}
 	}
-	
+	score = alpha;
+
 	if(alphaHits != 0){
 		if(whiteToMove){
 			whiteHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}else{
 			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}
+		TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
 	}
-	score = alpha;
-	if(alphaHits == 0){
-		if(moveCount > 1){
+	/*if(alphaHits != 0){
+		if(moveCount >= 1){
 			bestMove = moves[0].move;
+		}else{
+			printf("No moves? %i", moveCount);
 		}
-	}
-	TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
-
+	}*/
+	//TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
 	return alpha;
 }
 
