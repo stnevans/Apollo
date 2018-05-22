@@ -4,7 +4,7 @@
 #include "bitboard.h"
 #include "movegen.h"
 //  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-int naivePieceValue[] = {100,301,320,500,900,1000000};
+int naivePieceValue[] = {100,301,320,480,900,1000000};
 int centralization[] = {0,0,0,0,0,0,0,0,
 						0,2,2,2,2,2,2,0,
 						0,2,4,4,4,4,2,0,
@@ -77,6 +77,7 @@ int Eval::basicEvaluate(Board * b){
 	const int DOUBLE_PAWNS_PENALTY = 15;
 	const int ISOLATED_PAWNS_PENATLY = 15;
 	const int PASSED_PAWN_BONUS = 25;
+	const int PAWN_PROTECTION_VALUE = 4;
 	int eval = 0;
 	BoardInfo * info=b->currentBoard();
 	
@@ -103,7 +104,8 @@ int Eval::basicEvaluate(Board * b){
 	
 	//Centralization of pieces
 	int totalMaterial = b->totalMaterial();
-	if(totalMaterial <= 1400){
+	//1600 total material we say is endgame status
+	if(totalMaterial <= 1600){
 		eval+=centralizationValue(whitePawns,whitePawnEndgame);
 		eval-=centralizationValue(blackPawns,blackPawnEndgame);
 		if(whitePawns == 0LL && blackPawns == 0LL){
@@ -167,6 +169,11 @@ int Eval::basicEvaluate(Board * b){
 	
 	
 	//king safety here
+	U64 whitePawnsProtecting = whitePawns && ((whiteKings << 7) || (whiteKings<<8) || (whiteKings<<9));
+	U64 blackPawnsProtecting = blackPawns && ((blackKings >> 7) || (blackKings>>8) || (blackKings>>9));
+	eval+=popcnt(whitePawnsProtecting)*PAWN_PROTECTION_VALUE;
+	eval-=popcnt(blackPawnsProtecting)*PAWN_PROTECTION_VALUE;
+		
 	
 	
 	//open and semiopen files
@@ -192,7 +199,6 @@ int Eval::basicEvaluate(Board * b){
 	}
 	
 	//bishops
-	
 	
 	if(info->whiteToMove){
 		return eval; 

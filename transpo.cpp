@@ -4,6 +4,11 @@
 
 tt_entry * tt;
 int numEntries;
+
+U8 generation = 0;
+void TT::nextGeneration(){
+	generation+=8;//so bottom 3 bits are clear
+}
 void TT::setSize(int size){
 	free(tt);
 	if(size < sizeof(tt_entry)){
@@ -13,6 +18,7 @@ void TT::setSize(int size){
 	numEntries = size/sizeof(tt_entry)-1;
 	tt =  (tt_entry *) malloc(size);	
 	memset(tt,0,size);
+	generation = 8;
 }
 
 tt_entry * TT::probe(U64 key){
@@ -23,10 +29,14 @@ void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 	tt_entry * entry = &tt[key%numEntries];
 	//if should replace:
 	if(depth >= entry->depth){
-		entry->hash = key;
-		entry->eval = eval;
-		entry->depth = depth;
-		entry->bestMove=bestMove;
-		entry->flags=flags;
+		if(!(entry->depth == depth) || !(entry->hash == key) || flags == TT_EXACT){
+			//if(entry->hash == key){printf("%i %i %i %i\n", eval, entry->eval, depth, entry->depth);}
+			entry->hash = key;
+			entry->eval = eval;
+			entry->depth = depth;
+			entry->bestMove=bestMove;
+			entry->flags=flags;
+		}
+	
 	}
 }

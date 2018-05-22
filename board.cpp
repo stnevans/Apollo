@@ -304,6 +304,9 @@ Board& Board::readFromFen(std::string& fenStr, BoardInfo* board){
 	  
 	  i++;
   }
+  if(board->moveNumber > MAX_MOVECOUNT){
+	board->moveNumber =1;
+  }
   board->zobrist = initKeyFromBoard(this);
   validCache = false;
   return *this;

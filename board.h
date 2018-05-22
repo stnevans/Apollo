@@ -47,7 +47,7 @@ struct BoardInfo{
 	BoardInfo * previousBoard;//in Transpo table need depth, full board info, value, best move
 };
 
-const U16 MAX_MOVECOUNT = 255;
+const U16 MAX_MOVECOUNT = 512;
 class Board{
 	public: 
 		bool isDraw();

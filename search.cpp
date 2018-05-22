@@ -117,7 +117,7 @@ int mateIn(int eval, BoardInfo * b){
 	}
 	return 0;
 }
-
+bool saced = false;
 
 Move Search::iterativeDeepening(Board * board){
 	
@@ -125,6 +125,9 @@ Move Search::iterativeDeepening(Board * board){
 	char buffer[100];
 	Move bestMove=-1;
 	double startTime = get_wall_time();
+	//SAC EARLY
+	
+	
 	
 	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
 	for(int i = 0; i < 64; i++){
@@ -137,7 +140,7 @@ Move Search::iterativeDeepening(Board * board){
 	for(int depth = 1; depth < MAX_DEPTH; depth++){
 		nodeCount = 0;optimalMoveOrder=0;badMoveOrder=0;
 		LINE line;
-		
+		startDepth=depth;
 		currentlyFollowingPv = true;
 		canDoNullMove = true;
 		//Move curMove = getAlphabetaMove(board, depth, &line);
@@ -185,7 +188,7 @@ Move Search::iterativeDeepening(Board * board){
 			board->undoMove();
 		}
 		printf("\n");
-
+		
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
@@ -207,7 +210,7 @@ Move Search::iterativeDeepening(Board * board){
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	LINE line;
 	int alphaHits = 0;
-	
+
 	ExtMove moves[MAX_MOVES];
 	U8 moveCount = getAllLegalMoves(board,moves);
 	Move bestMove=0;
@@ -306,13 +309,12 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		if(board->currentSideMaterial() > 1000 && i > moveCount/3){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
 			if(val > alpha){
-				alpha = -alphabetaHelper(board, -beta, -alpha, depth-1);
+				val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 			}
 		}else{
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 		}
 		board->undoMove();
-		
 		
 		//Beta Cutoff
 		
@@ -323,6 +325,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			}else{
 				badMoveOrder++;
 			}
+			//printf("AlphaUpdate previous eval %i\t\t",alpha);
 			bestMove = moves[i].move;
 			if(val >= beta){
 				//History Heuristic Update
@@ -337,12 +340,12 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 				killerMoves[depth][0] = moves[i].move;
 				
 				score = beta;
-				TT::save(currentBoard->zobrist, alpha, TT_BETA, bestMove, depth);
+				TT::save(currentBoard->zobrist, beta, TT_BETA, bestMove, depth);
 				return beta;
 			}
-			
-			alpha = val;			
-			alphaHits++;
+			alpha = val;
+			alphaHits++;	
+			char buffer[100];
 		}
 	}
 	score = alpha;
@@ -353,18 +356,12 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		}else{
 			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}
+				
 		TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
 	}else{
 		TT::save(currentBoard->zobrist,alpha,TT_ALPHA,moves[0].move,depth);
+		bestMove=moves[0].move;
 	}
-	/*if(alphaHits != 0){
-		if(moveCount >= 1){
-			bestMove = moves[0].move;
-		}else{
-			printf("No moves? %i", moveCount);
-		}
-	}*/
-	//TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
 	return alpha;
 }
 
@@ -372,16 +369,37 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 
 //Ignoring in the pv for now.
 int Search::quiesce(Board * board, int alpha, int beta){
-	/*
-	BoardInfo* currentBoard = board->currentBoard();
+	/*BoardInfo* currentBoard = board->currentBoard();
 	tt_entry* entry = TT::probe(currentBoard->zobrist);
 	if(entry->hash == currentBoard->zobrist){
+		if(entry->depth >= 0){
 			int eval = entry->eval;
-			if(entry->flags == TT_EXACT){
-				return eval;
-			}
+			//if(eval <= beta && eval >= alpha){
+				//if checkmate, adjust ply
+				if(eval < (INT_MIN+1200)){
+					
+				}else if(eval > (-(INT_MIN+1200))){
+					
+				}
+				
+				if(entry->flags == TT_EXACT && (!currentlyFollowingPv)){
+					return eval;
+				}else if(entry->flags == TT_BETA){
+					if(!currentlyFollowingPv){
+						if(eval >= beta){
+							return beta;
+						}
+					}
+				}else if(entry->flags == TT_ALPHA){
+					if(!currentlyFollowingPv){
+						if(eval <= alpha){
+							return alpha;
+						}
+					}
+				}
+			//}
+		}
 	}*/
-	
 	int curEval = Eval::evaluate(board);
 
 	if(curEval >= beta){
