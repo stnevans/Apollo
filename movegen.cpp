@@ -176,7 +176,6 @@ U8 getAllLegalMoves(Board* b, ExtMove list[]){
 	legalMoveCount = j;
 	
 	return j;
-
 }
 
 U8 getWhiteKingMoves(BoardInfo* b, ExtMove moves[], int index) {
@@ -762,6 +761,10 @@ U8 Movegen::getAllCaptures(Board * b, ExtMove moves[]){
 	}
 	return j;
 }
+/*
+U8 getWhitePawnCaptures(BoardInfo * b, ExtMove moves[], int index){
+	
+}*/
 
 /*
 U8 getBlackQueenCaptures(BoardInfo * b, ExtMove moves[], int index) {

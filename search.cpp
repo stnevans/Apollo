@@ -66,17 +66,19 @@ void Search::calculateMovetime(Board* b){
 		}
 		int expectedMoves = 0;
 		if(moveNum < 10){
-			expectedMoves=50;
+			expectedMoves=60;
 		}else if(moveNum < 30){
-			expectedMoves = 65;
+			expectedMoves = 68;
+		}else if(moveNum < 40){
+			expectedMoves=75;
 		}else if(moveNum < 50){
 			expectedMoves = 80;
 		}else if(moveNum < 70){
-			expectedMoves = 90;
+			expectedMoves = 100;
 		}else if(moveNum < 100){
-			expectedMoves = 110;
+			expectedMoves = 120;
 		}else if(moveNum < 200){
-			expectedMoves = 210;
+			expectedMoves = 220;
 		}else{
 			expectedMoves = 320;
 		}	
@@ -122,12 +124,10 @@ bool saced = false;
 Move Search::iterativeDeepening(Board * board){
 	
 	endTime = cfg->endTime;
-	char buffer[100];
 	Move bestMove=-1;
 	double startTime = get_wall_time();
-	//SAC EARLY
 	
-	
+	TT::nextGeneration();
 	
 	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
 	for(int i = 0; i < 64; i++){
@@ -247,15 +247,15 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 					
 				}
 				
-				if(entry->flags == TT_EXACT && (!currentlyFollowingPv)){
+				if((entry->flags) == TT_EXACT && (!currentlyFollowingPv)){
 					return eval;
-				}else if(entry->flags == TT_BETA){
+				}else if((entry->flags)== TT_BETA){
 					if(!currentlyFollowingPv){
 						if(eval >= beta){
 							return beta;
 						}
 					}
-				}else if(entry->flags == TT_ALPHA){
+				}else if((entry->flags )== TT_ALPHA){
 					if(!currentlyFollowingPv){
 						if(eval <= alpha){
 							return alpha;
@@ -268,7 +268,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	
 
 	
-	if((nodeCount/5000 == 0) && get_wall_time() >= endTime){
+	if((nodeCount/3000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
 	//Hope to prune!
@@ -309,12 +309,27 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		//LMR: may be buggy.
 		if(board->currentSideMaterial() > 1000 && i > moveCount/3){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
-			if(val > alpha){
+			if(val > alpha){//Ideally this would be >=, however the depth reduction we get when using it seems to be too much. Consequently, this is impossible.!
 				val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 			}
 		}else{
-			val = -alphabetaHelper(board, -beta, -alpha, depth-1);
+			//PVS HERE
+			if(i>0){
+				val = -alphabetaHelper(board, -alpha-1, -alpha, depth-1);
+			}
+			if(val >= alpha && val <= beta || i <=0){
+			val = -alphabetaHelper(board, -beta, -alpha, depth-1);}
+		}/*
+		int newDepth=depth-1;
+		if(i > moveCount/3){
+			newDepth-=1;
 		}
+		if(i>0 && alphaHits == 0){
+				val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth);
+		}
+		if(val >= alpha || i <=0){
+			val = -alphabetaHelper(board, -beta, -alpha, newDepth);
+		}*/
 		board->undoMove();
 		
 		//Beta Cutoff
@@ -326,7 +341,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			}else{
 				badMoveOrder++;
 			}
-			//printf("AlphaUpdate previous eval %i\t\t",alpha);
 			bestMove = moves[i].move;
 			if(val >= beta){
 				//History Heuristic Update
