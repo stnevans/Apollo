@@ -79,7 +79,7 @@ int Eval::basicEvaluate(Board * b){
 	const int PASSED_PAWN_BONUS = 25;
 	const int PAWN_PROTECTION_VALUE = 4;
 	const int TWO_PAWN_PROTECTION_VALUE =3;
-
+	const int KING_ON_SEMIOPEN_FILE=10;
 	int eval = 0;
 	BoardInfo * info=b->currentBoard();
 	
@@ -171,15 +171,32 @@ int Eval::basicEvaluate(Board * b){
 	
 	
 	//king safety here
-	U64 whitePawnsProtecting = (whitePawns) & ((whiteKings << 7) | (whiteKings<<8) | (whiteKings<<9));
-	U64 blackPawnsProtecting = (blackPawns) & ((blackKings >> 7) | (blackKings>>8) | (blackKings>>9));
-	eval+=popcnt(whitePawnsProtecting)*PAWN_PROTECTION_VALUE;
-	eval-=popcnt(blackPawnsProtecting)*PAWN_PROTECTION_VALUE;
-	whitePawnsProtecting = whitePawns & ((whiteKings << 15) | (whiteKings<<16) | (whiteKings<<17));
-	blackPawnsProtecting = blackPawns & ((blackKings >> 15) | (blackKings>>16) | (blackKings>>17));
-	eval+=popcnt(whitePawnsProtecting)*TWO_PAWN_PROTECTION_VALUE;
-	eval-=popcnt(blackPawnsProtecting)*TWO_PAWN_PROTECTION_VALUE;
-	
+	if(totalMaterial >= 1600){
+		//PAWN SHIELD
+		U64 whitePawnsProtecting = (whitePawns) & ((whiteKings << 7) | (whiteKings<<8) | (whiteKings<<9));
+		U64 blackPawnsProtecting = (blackPawns) & ((blackKings >> 7) | (blackKings>>8) | (blackKings>>9));
+		eval+=popcnt(whitePawnsProtecting)*PAWN_PROTECTION_VALUE;
+		eval-=popcnt(blackPawnsProtecting)*PAWN_PROTECTION_VALUE;
+		whitePawnsProtecting = whitePawns & ((whiteKings << 15) | (whiteKings<<16) | (whiteKings<<17));
+		blackPawnsProtecting = blackPawns & ((blackKings >> 15) | (blackKings>>16) | (blackKings>>17));
+		eval+=popcnt(whitePawnsProtecting)*TWO_PAWN_PROTECTION_VALUE;
+		eval-=popcnt(blackPawnsProtecting)*TWO_PAWN_PROTECTION_VALUE;
+		
+		//KING ON SEMIOPEN
+		for(int i = FILE_A; i< FILE_H; i++){
+			if(whiteKings & maskFile[i]){
+				//Semiopen
+				if((whitePawns & maskFile[i]) == 0){
+					eval-=KING_ON_SEMIOPEN_FILE;
+				}
+			}
+			if(blackKings & maskFile[i]){
+				if((blackPawns & maskFile[i]) == 0){
+					eval+=KING_ON_SEMIOPEN_FILE;
+				}
+			}
+		}
+	}
 	
 	
 	//open and semiopen files

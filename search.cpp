@@ -307,9 +307,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		board->makeMove(moves[i].move);
 		int val;
 		//LMR: may be buggy.
-		if(board->currentSideMaterial() > 1000 && i > moveCount/3){
+		/*if(board->currentSideMaterial() > 1000 && i > moveCount/3){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
-			if(val > alpha){//Ideally this would be >=, however the depth reduction we get when using it seems to be too much. Consequently, this is impossible.!
+			if(val > alpha){
 				val = -alphabetaHelper(board, -beta, -alpha, depth-1);
 			}
 		}else{
@@ -319,17 +319,17 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			}
 			if(val >= alpha && val <= beta || i <=0){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1);}
-		}/*
+		}*/
 		int newDepth=depth-1;
-		if(i > moveCount/3){
+		if(board->currentSideMaterial() > 100 && i > moveCount/3){
 			newDepth-=1;
 		}
-		if(i>0 && alphaHits == 0){
+		if(i>0){
 				val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth);
 		}
-		if(val >= alpha || i <=0){
+		if(val > alpha || i <=0){
 			val = -alphabetaHelper(board, -beta, -alpha, newDepth);
-		}*/
+		}
 		board->undoMove();
 		
 		//Beta Cutoff
