@@ -78,6 +78,8 @@ int Eval::basicEvaluate(Board * b){
 	const int ISOLATED_PAWNS_PENATLY = 15;
 	const int PASSED_PAWN_BONUS = 25;
 	const int PAWN_PROTECTION_VALUE = 4;
+	const int TWO_PAWN_PROTECTION_VALUE =3;
+
 	int eval = 0;
 	BoardInfo * info=b->currentBoard();
 	
@@ -169,11 +171,15 @@ int Eval::basicEvaluate(Board * b){
 	
 	
 	//king safety here
-	U64 whitePawnsProtecting = whitePawns && ((whiteKings << 7) || (whiteKings<<8) || (whiteKings<<9));
+	/*U64 whitePawnsProtecting = whitePawns && ((whiteKings << 7) || (whiteKings<<8) || (whiteKings<<9));
 	U64 blackPawnsProtecting = blackPawns && ((blackKings >> 7) || (blackKings>>8) || (blackKings>>9));
 	eval+=popcnt(whitePawnsProtecting)*PAWN_PROTECTION_VALUE;
 	eval-=popcnt(blackPawnsProtecting)*PAWN_PROTECTION_VALUE;
-		
+	whitePawnsProtecting = whitePawns && ((whiteKings << 15) || (whiteKings<<16) || (whiteKings<<17));
+	blackPawnsProtecting = blackPawns && ((blackKings >> 15) || (blackKings>>16) || (blackKings>>17));
+	eval+=popcnt(whitePawnsProtecting)*TWO_PAWN_PROTECTION_VALUE;
+	eval-=popcnt(blackPawnsProtecting)*TWO_PAWN_PROTECTION_VALUE;*/
+	
 	
 	
 	//open and semiopen files

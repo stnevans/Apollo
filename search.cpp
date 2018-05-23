@@ -150,6 +150,7 @@ Move Search::iterativeDeepening(Board * board){
 			int newEval;
 			newEval = alphabetaHelper(board,eval-50,eval+50,depth);
 			if((newEval <= eval-50) || (newEval >= eval+50)){
+				currentlyFollowingPv=true;
 				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth);
 			}
 			eval = newEval;
@@ -267,7 +268,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	
 
 	
-	if((nodeCount/10000 == 0) && get_wall_time() >= endTime){
+	if((nodeCount/5000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
 	//Hope to prune!
@@ -299,9 +300,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
 
-		//if(isMoveFutile(board,startDepth-depth,depth,i,moves[i].move,alpha,beta,curEval)){
-		//	continue;
-		//}
+		if(isMoveFutile(board,startDepth-depth,depth,i,moves[i].move,alpha,beta,curEval)){
+			continue;
+		}
 
 		board->makeMove(moves[i].move);
 		int val;
@@ -400,8 +401,11 @@ int Search::quiesce(Board * board, int alpha, int beta){
 			//}
 		}
 	}*/
+	if(board->isOwnKingInCheck()){
+		return alphabetaHelper(board,alpha,beta,1);
+	}
 	int curEval = Eval::evaluate(board);
-
+	
 	if(curEval >= beta){
 		return beta;
 	}
