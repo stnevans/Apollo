@@ -29,7 +29,8 @@ void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 	tt_entry * entry = &tt[key%numEntries];
 	//if should replace:
 	//if(depth >= entry->depth){
-		if(!(entry->depth == depth) || !(entry->hash == key) || flags == TT_EXACT){
+		//Replace if the keys are different, 
+		if(!(entry->depth == depth) || !(entry->hash == key) || (!(entry->flags == TT_EXACT) && flags == TT_EXACT)){
 			entry->hash = key;
 			entry->eval = eval;
 			entry->depth = depth;

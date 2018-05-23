@@ -93,6 +93,8 @@ Search::LINE lastPv;
 //Used for move ordering
 U64 whiteHeuristic[64][64]={{0}};
 U64 blackHeuristic[64][64]={{0}};
+
+U64 counterMove[64][64]={{0}};
 constexpr int MAX_DEPTH = 200;
 Move killerMoves[MAX_DEPTH][2] = {};
 
@@ -134,6 +136,7 @@ Move Search::iterativeDeepening(Board * board){
 		for(int j = 0; j < 64; j++){
 			whiteHeuristic[i][j]=0;
 			blackHeuristic[i][j]=0;
+			counterMove[i][j]=0;
 		}
 	}
 	int eval;
@@ -264,6 +267,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 				}
 			//}
 		}
+	}else if(depth > 8){
+		//INTERNAL ITERATIVE DEEPENING (IID)
+		alphabetaHelper(board,alpha,beta,4);
 	}
 	
 
@@ -305,7 +311,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		}
 
 		board->makeMove(moves[i].move);
-		int val;
+		int val=alpha-1;
 		//LMR: may be buggy.
 		/*if(board->currentSideMaterial() > 1000 && i > moveCount/3){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
@@ -321,6 +327,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			val = -alphabetaHelper(board, -beta, -alpha, depth-1);}
 		}*/
 		int newDepth=depth-1;
+		//LMR. Ideally we would be a bit more reserved when doing LMR
 		if(board->currentSideMaterial() > 100 && i > moveCount/3){
 			newDepth-=1;
 		}
