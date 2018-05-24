@@ -134,16 +134,21 @@ bool Board::isDraw(){
 			return true;
 		}
 	}
-	return isRepetition();
-}
-
-bool Board::isRepetition(){
 	int rep = 0;
 	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2; i++){
 		if(boards[i].zobrist == boardInfo->zobrist){
 			rep++;
 		}
 		if(rep >= 2){
+			return true;
+		}
+	}
+	return false;}
+
+bool Board::isRepetition(){
+	int rep = 0;
+	for(int i = boardInfo->moveNumber-boardInfo->fiftyMoveRule; i < boardInfo->moveNumber-2; i++){
+		if(boards[i].zobrist == boardInfo->zobrist){
 			return true;
 		}
 	}

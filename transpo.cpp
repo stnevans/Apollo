@@ -4,12 +4,16 @@
 
 tt_entry * tt;
 int numEntries;
-
+long long ttSize;
 U8 generation = 0;
 void TT::nextGeneration(){
 	generation+=8;//so bottom 3 bits are clear
 }
-void TT::setSize(int size){
+
+void TT::clear(){
+	memset(tt,0,ttSize);
+}
+void TT::setSize(long long size){
 	free(tt);
 	if(size < sizeof(tt_entry)){
 		size = 0;
@@ -19,6 +23,7 @@ void TT::setSize(int size){
 	tt =  (tt_entry *) malloc(size);	
 	memset(tt,0,size);
 	generation = 8;
+	ttSize = size;
 }
 
 tt_entry * TT::probe(U64 key){

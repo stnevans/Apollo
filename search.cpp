@@ -220,8 +220,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	Move bestMove=0;
 
 	int curEval = Eval::evaluate(board);
-
-	if(depth <= 0 || moveCount == 0|| board->isRepetition()){
+	if(board->isRepetition()){
+		return 0;
+	}
+	if(depth <= 0 || moveCount == 0){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
 			//pline->cmove = 0;

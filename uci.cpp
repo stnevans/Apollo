@@ -230,6 +230,7 @@ bool UCI::loop(){
 			std::cout << "uciok" << std::endl;
 		}else if(token == "ucinewgame"){
 			b.readFromFen(StartPositionFEN,&info);
+			TT::clear();
 		}else if(token == "isready"){
 			std::cout << "readyok" << std::endl;
 		}else if(token == "position"){

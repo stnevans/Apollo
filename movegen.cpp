@@ -1133,7 +1133,7 @@ U8 Movegen::getAllCaptures(Board * b, ExtMove list[]){
 	int k = 0;
 	for(int i = 0; i < j; i++){
 			int see = b->staticExchange(list[i].move);
-			if(see > 0){
+			if(see >= 0){
 				list[k].move = list[i].move;
 				list[k].score = see;
 				k++;
