@@ -28,7 +28,7 @@ tt_entry * TT::probe(U64 key){
 void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 	tt_entry * entry = &tt[key%numEntries];
 	//if should replace:
-	//if(depth >= entry->depth){
+	if(depth >= entry->depth || depth >4){
 		//Replace if the keys are different, 
 		if(!(entry->depth == depth) || !(entry->hash == key) || (!(entry->flags == TT_EXACT) && flags == TT_EXACT)){
 			entry->hash = key;
@@ -38,5 +38,5 @@ void TT::save(U64 key, int eval, U8 flags, Move bestMove, U8 depth){
 			entry->flags=flags;
 		}
 	
-	//}
+	}
 }

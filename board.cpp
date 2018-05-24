@@ -838,7 +838,7 @@ void Board::makeMove(Move move){
 	newInfo->whiteToMove=!newInfo->whiteToMove;
 	newInfo->zobrist^=whiteMove;
 	updateSpecialBB(newInfo);
-	
+	newInfo->lastMove = move;
 }
 
 void Board::undoMove(){
@@ -860,6 +860,7 @@ void Board::makeNullMove(){
 	}
 	newInfo->whiteToMove=!newInfo->whiteToMove;
 	boardInfo=newInfo;
+	newInfo->lastMove = 0;
 	validCache=false;
 	//updateSpecialBB(newInfo);
 }

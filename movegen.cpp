@@ -738,28 +738,408 @@ U8 getBlackQueenMoves(BoardInfo * b, ExtMove moves[], int index) {
 	}
 	return num_moves_generated;
 }
+U8 getPseudoCaptures(Board * b, ExtMove * moves){
+	BoardInfo * ba=b->currentBoard();
+	int num_moves_generated = 0;
+	U64 whitePieces = ba->WhitePiecesBB;
+	U64 blackPieces = ba->BlackPiecesBB;
+	int moveGenCount;
+	if(ba->whiteToMove){
+		//White King
+		U64 king = ba->WhiteKingBB;
+		U8 from_loc = trailingZeroCount(king);
+		U64 movelocs = pseudoLegalKingMoveDestinations(from_loc, ~whitePieces);
+		movelocs &= blackPieces;
+		while (movelocs != 0L) {
+			U64 to = lowestOneBit(movelocs);
+			U8 to_loc = trailingZeroCount(to);
+			Move move = createMove(from_loc, to_loc, KING);
+			addMove(move,moves,num_moves_generated,true,ba);
+			num_moves_generated++;
+			movelocs &= ~to;	
+		}
+		
+		
+		//White Knight
+		U64 knights = ba->WhiteKnightBB;
+		while (knights != 0L) {
+			U64 from = lowestOneBit(knights);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs = pseudoLegalKnightMoveDestinations(from_loc, ~whitePieces);
+			movelocs &= blackPieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, KNIGHT);
+				addMove(move,moves,num_moves_generated,true,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			
+			}
+			knights &= ~from;
+		}
+		
+		//White Queens
+		U64 queens = ba->WhiteQueenBB;
+		while (queens != 0L) {
+			U64 from = lowestOneBit(queens);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs =
+					getQueenAttacks(from_loc, ba->AllPiecesBB & ~from);
+			
+			movelocs &= ~ba->WhitePiecesBB;
+			movelocs &= blackPieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, QUEEN);
+				addMove(move,moves,num_moves_generated,true,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			queens &= ~from;
+		}
+		//White Rooks
+		U64 rooks = ba->WhiteRookBB;
+		while (rooks != 0L) {
+			U64 from = lowestOneBit(rooks);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs = getRookAttacks(from_loc, ba->AllPiecesBB & ~from);
+			movelocs &= ~ba->WhitePiecesBB;
+			movelocs &= blackPieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, ROOK);
+				addMove(move,moves,num_moves_generated,true,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			
+			rooks &= ~from;
+		}
+		
+		//White Bishops
+		U64 bishops = ba->WhiteBishopBB;
+		
+		while (bishops != 0L) {
+			U64 from = lowestOneBit(bishops);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs =
+					getBishopAttacks(from_loc, ba->AllPiecesBB & ~from);
+			movelocs &= ~ba->WhitePiecesBB;
+			movelocs &=blackPieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, BISHOP);
+				addMove(move,moves,num_moves_generated,true,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			
+			bishops &= ~from;
+		}
+		U64 pawns = ba->WhitePawnBB;
+		moveGenCount = num_moves_generated;
+		
+		while(pawns != 0){
+			U64 fromBB = lowestOneBit(pawns);
+			U8 fromLoc = trailingZeroCount(fromBB);
+			
+			//If pawn is on seventh rank
+			if((fromBB & maskRank[RANK_7]) != 0){
+				//If pawn is not on A file, and there is a piece to capture upper left 
+				if(((fromBB & maskFile[FILE_A]) == 0) &&  (((fromBB << 7 ) & (ba->BlackPiecesBB)) != 0)){
+					U8 destLoc = trailingZeroCount(fromBB << 7);
+					Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
+					addMove(m,moves,moveGenCount,true,ba);
+					moveGenCount++;
+					m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
+					addMove(m,moves,moveGenCount,true,ba);
+					moveGenCount++;
+				}
+				//If pawn not on H file, and there is a piece to capture upper right
+				if(((fromBB & maskFile[FILE_H]) ==0) && (((fromBB <<9) & (ba->BlackPiecesBB)) != 0)){
+					U8 destLoc = trailingZeroCount(fromBB << 9);
+					Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
+					addMove(m,moves,moveGenCount,true,ba);
+
+					moveGenCount++;
+					m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
+					addMove(m,moves,moveGenCount,true,ba);
+					moveGenCount++;
+				}
+				//If next square clear
+				if(((fromBB << 8) & (ba->AllPiecesBB)) == 0){
+					U8 destLoc = trailingZeroCount(fromBB << 8);
+					Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
+					addMove(m,moves,moveGenCount,true,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+					m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
+					addMove(m,moves,moveGenCount,true,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+				}
+			}else{
+				//Pawn not on seventh rank
+				
+				//Leftwards captures.
+				if(((fromBB & maskFile[FILE_A]) == 0) && ((((fromBB << 7) & (ba->BlackPiecesBB)) != 0) || (trailingZeroCount(fromBB << 7) == (ba->enPassantLoc)))){
+					U8 destLoc = trailingZeroCount(fromBB << 7);
+					Move m;
+					if(destLoc == (ba->enPassantLoc)){
+						m = createMove(fromLoc, destLoc, PAWN, KING, ENPASSANT);
+					}else{
+						m = createMove(fromLoc, destLoc, PAWN);
+					}
+					addMove(m,moves,moveGenCount,true,ba);
+					moveGenCount++;
+				}
+				
+				//Rightwards captures
+				if(((fromBB & maskFile[FILE_H]) == 0) && ((((fromBB << 9) & (ba->BlackPiecesBB)) != 0) || (trailingZeroCount(fromBB << 9) == (ba->enPassantLoc)))){
+					U8 destLoc = trailingZeroCount(fromBB << 9);
+					Move m;
+					if(destLoc == (ba->enPassantLoc)){
+						m = createMove(fromLoc, destLoc, PAWN, KING, ENPASSANT);
+					}else{
+						m = createMove(fromLoc, destLoc, PAWN);
+					}
+					addMove(m,moves,moveGenCount,true,ba);
+					moveGenCount++;
+				}
+			}
+			pawns = pawns &~fromBB;
+		}
+	}else{//end white to move
+		//Black King
+		U64 king = ba->BlackKingBB;
+		U8 from_loc = trailingZeroCount(king);
+		U64 movelocs = pseudoLegalKingMoveDestinations(from_loc, ~blackPieces);
+		movelocs &= whitePieces;
+		while (movelocs != 0L) {
+			U64 to = lowestOneBit(movelocs);
+			U8 to_loc = trailingZeroCount(to);
+			Move move = createMove(from_loc, to_loc, KING);
+			addMove(move,moves,num_moves_generated,false,ba);
+			num_moves_generated++;
+			movelocs &= ~to;	
+		}
+		
+		//Black Knight
+		U64 knights = ba->BlackKnightBB;
+		
+		while (knights != 0L) {
+			U64 from = lowestOneBit(knights);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs = pseudoLegalKnightMoveDestinations(from_loc, ~blackPieces);
+			movelocs &= whitePieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, KNIGHT);
+				addMove(move,moves,num_moves_generated,false,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			knights &= ~from;
+		}
+		
+		//Black Queens
+		U64 queens = ba->BlackQueenBB;	
+		while (queens != 0L) {
+			U64 from = lowestOneBit(queens);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs =
+					getQueenAttacks(from_loc, ba->AllPiecesBB & ~from);
+			movelocs &= ~ba->BlackPiecesBB;
+			movelocs &= whitePieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, QUEEN);
+				addMove(move,moves,num_moves_generated,false,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			queens &= ~from;
+		}
+		
+		//Black Rooks
+		U64 rooks = ba->BlackRookBB;
+		while (rooks != 0L) {
+			U64 from = lowestOneBit(rooks);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs = getRookAttacks(from_loc, ba->AllPiecesBB & ~from);
+			movelocs &= ~ba->BlackPiecesBB;
+			movelocs &= whitePieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, ROOK);
+				addMove(move,moves,num_moves_generated,false,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			rooks &= ~from;
+		}
+		
+		//Black Bishops
+		U64 bishops = ba->BlackBishopBB;
+		
+		while (bishops != 0L) {
+			U64 from = lowestOneBit(bishops);
+			U8 from_loc = trailingZeroCount(from);
+			U64 movelocs =
+					getBishopAttacks(from_loc, ba->AllPiecesBB & ~from);
+			movelocs &= ~ba->BlackPiecesBB;
+			movelocs &=whitePieces;
+			while (movelocs != 0L) {
+				U64 to = lowestOneBit(movelocs);
+				U8 to_loc = trailingZeroCount(to);
+				Move move =
+						createMove(from_loc, to_loc, BISHOP);
+				addMove(move,moves,num_moves_generated,false,ba);
+				num_moves_generated++;
+				movelocs &= ~to;
+			}
+			
+			bishops &= ~from;
+		}
+		moveGenCount = num_moves_generated;
+		//BLACK PAWNS
+		U64 pawns = ba->BlackPawnBB;
+		while(pawns != 0){
+			U64 fromBB = lowestOneBit(pawns);
+			U8 fromLoc = trailingZeroCount(fromBB);
+			
+			//If pawn is on seventh rank
+			if((fromBB & maskRank[RANK_2]) != 0){
+				//If pawn is not on A file, and there is a piece to capture upper left 
+				if(((fromBB & maskFile[FILE_H]) == 0) &&  (((fromBB >> 7) & (ba->WhitePiecesBB)) != 0)){
+					U8 destLoc = trailingZeroCount(fromBB >> 7);
+					Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
+					addMove(m,moves,moveGenCount,false,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+					m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
+					addMove(m,moves,moveGenCount,false,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+				}
+				//If pawn not on H file, and there is a piece to capture upper right
+				if(((fromBB & maskFile[FILE_A]) ==0) && (((fromBB >>9) & (ba->WhitePiecesBB)) != 0)){
+					U8 destLoc = trailingZeroCount(fromBB >>9);
+					Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
+					addMove(m,moves,moveGenCount,false,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+					m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
+					addMove(m,moves,moveGenCount,false,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+				}
+				//If next square clear
+				if(((fromBB >>8) & (ba->AllPiecesBB)) == 0){
+					U8 destLoc = trailingZeroCount(fromBB >> 8);
+					Move m = createMove(fromLoc, destLoc, PAWN, KNIGHT, PROMOTION);
+					addMove(m,moves,moveGenCount,false,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+					m = createMove(fromLoc, destLoc, PAWN, QUEEN, PROMOTION);
+					addMove(m,moves,moveGenCount,false,ba);
+					//list[listIdx+moveGenCount].move = m;
+					moveGenCount++;
+				}
+			}else{
+				//Pawn not on seventh rank
+				
+				//Leftwards captures.
+				if(((fromBB & maskFile[FILE_H]) == 0) && ((((fromBB >> 7) & (ba->WhitePiecesBB)) != 0) || (trailingZeroCount(fromBB >> 7) == (ba->enPassantLoc)))){
+					U8 destLoc = trailingZeroCount(fromBB >> 7);
+					Move m;
+					if(destLoc == (ba->enPassantLoc)){
+						m = createMove(fromLoc, destLoc, PAWN, KING, ENPASSANT);
+					}else{
+						m = createMove(fromLoc, destLoc, PAWN);
+					}
+					addMove(m,moves,moveGenCount,false,ba);
+					moveGenCount++;
+				}
+				
+				//Rightwards captures
+				if(((fromBB & maskFile[FILE_A]) == 0) && ((((fromBB >> 9) & (ba->WhitePiecesBB)) != 0) || (trailingZeroCount(fromBB >> 9) == (ba->enPassantLoc)))){
+					U8 destLoc = trailingZeroCount(fromBB >> 9);
+					Move m;
+					if(destLoc == (ba->enPassantLoc)){
+						m = createMove(fromLoc, destLoc, PAWN, KING, ENPASSANT);
+					}else{
+						m = createMove(fromLoc, destLoc, PAWN);
+					}
+					addMove(m,moves,moveGenCount,false,ba);
+					moveGenCount++;
+				}
+			}
+			pawns = pawns &~fromBB;
+		}
+	}
+	return moveGenCount;
+}
 //TODO needs to be vastly improved
-U8 Movegen::getAllCaptures(Board * b, ExtMove moves[]){
-	U8 movess = getAllLegalMoves(b,moves);
-	U64 piecesToCap;
+#include "uci.h"
+U8 Movegen::getAllCaptures(Board * b, ExtMove list[]){
+	U8 movess = getPseudoCaptures(b,list);
+	bool check = b->isOwnKingInCheck();
+	U64 mask;
+	int j = 0;
 	if(b->currentBoard()->whiteToMove){
-		piecesToCap = b->currentBoard()->BlackPiecesBB;
+		mask = potentiallyPinned[trailingZeroCount(b->currentBoard()->WhiteKingBB)];
 	}else{
-		piecesToCap = b->currentBoard()->WhitePiecesBB;
+		mask = potentiallyPinned[trailingZeroCount(b->currentBoard()->BlackKingBB)];
+	}
+	if(check){
+		for (int i = 0; i < movess; i++) {
+			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move)){
+				b->fastMakeMove(list[i].move);
+				if(b->legal()){
+					list[j++] = list[i];
+				}
+				b->undoMove();
+			}
+		}
+	}else{
+		for (int i = 0; i < movess; i++) {
+			if(mask & getSquare[from_sq(list[i])] || PieceMoved(list[i]) == KING){
+				b->fastMakeMove(list[i].move);
+				if(b->legal()){
+					list[j++] = list[i];
+				}
+				b->undoMove();
+			}else{
+				list[j++] = list[i];
+			}
+		}
 	}
 	
-	int j = 0;
-	for(int i = 0; i < movess; i++){
-		 if((getSquare[to_sq(moves[i])] & piecesToCap) != 0 || type_of(moves[i]) == PROMOTION){
-			int see = b->staticExchange(moves[i].move);
+	int k = 0;
+	for(int i = 0; i < j; i++){
+			int see = b->staticExchange(list[i].move);
 			if(see > 0){
-				moves[j].move = moves[i].move;
-				moves[j].score = see;
-				j++;
+				list[k].move = list[i].move;
+				list[k].score = see;
+				k++;
 			}
-		 }
 	}
-	return j;
+	return k;
 }
 /*
 U8 getWhitePawnCaptures(BoardInfo * b, ExtMove moves[], int index){

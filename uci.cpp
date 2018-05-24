@@ -215,6 +215,7 @@ bool UCI::loop(){
 	
 	TT::setSize(1048576*32);
 	b.readFromFen(StartPositionFEN,&info);
+	std::cout << ("Apollo v1.2 by Stuart Nevans Locke") << std::endl;
 	while(true){
 		getline(cin,cmd);
 		istringstream parser(cmd);
@@ -223,7 +224,7 @@ bool UCI::loop(){
 			return false;
 		}
 		if(token == "uci"){
-			std::cout << "id name Apollo Release 1.1\n";
+			std::cout << "id name Apollo Release 1.2\n";
 			std::cout << "id author Stuart Nevans Locke\n\n";
 			printUciOptions();
 			std::cout << "uciok" << std::endl;

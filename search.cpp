@@ -312,25 +312,13 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 
 		board->makeMove(moves[i].move);
 		int val=alpha-1;
-		//LMR: may be buggy.
-		/*if(board->currentSideMaterial() > 1000 && i > moveCount/3){
-			val = -alphabetaHelper(board, -beta, -alpha, depth-2);
-			if(val > alpha){
-				val = -alphabetaHelper(board, -beta, -alpha, depth-1);
-			}
-		}else{
-			//PVS HERE
-			if(i>0){
-				val = -alphabetaHelper(board, -alpha-1, -alpha, depth-1);
-			}
-			if(val >= alpha && val <= beta || i <=0){
-			val = -alphabetaHelper(board, -beta, -alpha, depth-1);}
-		}*/
+	
 		int newDepth=depth-1;
 		//LMR. Ideally we would be a bit more reserved when doing LMR
 		if(board->currentSideMaterial() > 100 && i > moveCount/3){
 			newDepth-=1;
 		}
+		//PVS Search
 		if(i>0){
 				val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth);
 		}
@@ -353,21 +341,36 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 				//History Heuristic Update
 				if(whiteToMove){
 					whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
+					if(whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] > 50000){
+						for(int k = 0; k < 64; k++){
+						for(int z = 0; z < 64; z++){
+							whiteHeuristic[k][z]=whiteHeuristic[k][z]/2;
+						}	
+						}
+					}
 				}else{
 					blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] += depth*depth;
+					if(blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)] > 50000){
+						for(int k = 0; k < 64; k++){
+						for(int z = 0; z < 64; z++){
+							blackHeuristic[k][z]=blackHeuristic[k][z]/2;
+						}	
+						}
+					}
 				}
 
 				//Killer move update
 				killerMoves[depth][1] = killerMoves[depth][0];
 				killerMoves[depth][0] = moves[i].move;
-				
+				if(!isCapture(moves[i].move)){
+					counterMove[from_sq(currentBoard->lastMove)][to_sq(currentBoard->lastMove)] = moves[i].move;
+				}
 				score = beta;
 				TT::save(currentBoard->zobrist, beta, TT_BETA, bestMove, depth);
 				return beta;
 			}
 			alpha = val;
 			alphaHits++;	
-			char buffer[100];
 		}
 	}
 	score = alpha;
@@ -391,40 +394,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 
 //Ignoring in the pv for now.
 int Search::quiesce(Board * board, int alpha, int beta){
-	/*BoardInfo* currentBoard = board->currentBoard();
-	tt_entry* entry = TT::probe(currentBoard->zobrist);
-	if(entry->hash == currentBoard->zobrist){
-		if(entry->depth >= 0){
-			int eval = entry->eval;
-			//if(eval <= beta && eval >= alpha){
-				//if checkmate, adjust ply
-				if(eval < (INT_MIN+1200)){
-					
-				}else if(eval > (-(INT_MIN+1200))){
-					
-				}
-				
-				if(entry->flags == TT_EXACT && (!currentlyFollowingPv)){
-					return eval;
-				}else if(entry->flags == TT_BETA){
-					if(!currentlyFollowingPv){
-						if(eval >= beta){
-							return beta;
-						}
-					}
-				}else if(entry->flags == TT_ALPHA){
-					if(!currentlyFollowingPv){
-						if(eval <= alpha){
-							return alpha;
-						}
-					}
-				}
-			//}
-		}
-	}*/
-	if(board->isOwnKingInCheck()){
-		return alphabetaHelper(board,alpha,beta,1);
-	}
+	
+	//if(board->isOwnKingInCheck()){
+	//	return alphabetaHelper(board,alpha,beta,1);
+	//}
 	int curEval = Eval::evaluate(board);
 	
 	if(curEval >= beta){
@@ -439,7 +412,7 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	Move bestMove;
 	for(int i = 0; i < moveCount; i++){
 		//delta pruning
-		
+		orderMoves(moves,board,moveCount,0,0,i,board->currentBoard()->whiteToMove);
 		//Endgames, with an extra buffer in case of large piece captured.
 		if(board->currentSideMaterial() > 1500){
 			//IN quiescence, score represents the static exchange. Way too aggressive delta pruning.
@@ -447,8 +420,6 @@ int Search::quiesce(Board * board, int alpha, int beta){
 				continue;
 			}
 		}
-		
-		
 		
 		board->makeMove(moves[i].move);
 		int score = -quiesce(board, -beta, -alpha);
@@ -509,6 +480,9 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 				moves[i].score = whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];
 			}else{
 				moves[i].score = blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];	
+			}
+			if(moves[i].move == counterMove[from_sq(board->currentBoard()->lastMove)][to_sq(board->currentBoard()->lastMove)]){
+				moves[i].score+=2000;
 			}
 		}
 		if(moves[i].score > max){

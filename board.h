@@ -39,6 +39,7 @@ struct BoardInfo{
 	BitBoard BlackBishopBB;
 	BitBoard BlackKnightBB;
 	BitBoard BlackPawnBB;
+	Move lastMove;
 	
 	//TODO: Consider not doing this. Instead recalculate when BoardInfo is loaded. 
 	BitBoard WhitePiecesBB;
