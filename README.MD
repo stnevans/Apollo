@@ -1,10 +1,8 @@
 # Apollo
 
 ## About
-Apollo is a UCI compatible chess engine created in c++.
-Currently it can correctly generate moves, and run a simple material evaluation function on Alpha-Beta and Minimax trees.
-The move generation is about 8x slower than stockfish.
-For current tasks, see board.cpp, the TODO are listed there.
+Apollo is a UCI compatible chess engine created in c++. It uses the traditional approach of chess engines, meaning it uses alpha-beta pruning with negamax. Various types of further pruning are added in an attempt to keep the branching factor low.
+For more information on the exact methods, see the source files.
 
 ## Compile
   - Compile with cl: `cl uci.cpp bbmagic.cpp board.cpp movegen.cpp bitboard.cpp testing.cpp eval.cpp search.cpp zobrist.cpp transpo.cpp /Ox /Feapollo /EHsc`
