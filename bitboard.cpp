@@ -30,6 +30,7 @@ U8 popcnt(U64 bb){
 }
 
 
+
 int trailingZeroCount(U64 bb) {
    static const int lookup67[67+1] = {
       64,  0,  1, 39,  2, 15, 40, 23,

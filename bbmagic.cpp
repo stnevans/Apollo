@@ -140,7 +140,32 @@ bool isIndexAttacked(BoardInfo* b, U8 i, bool whiteToMove) {
 	}
 	return false;
 }
-
+bool isIndexAttackedWithoutKing(BoardInfo* b, U8 i, bool whiteToMove) {
+	if (i < 0 || i > 63)
+		return false;
+	U64 others = (whiteToMove ? b->BlackPiecesBB : b->WhitePiecesBB);
+	U64 all = b->AllPiecesBB^ (whiteToMove?b->WhiteKingBB : b->BlackKingBB);
+	
+	if ( ( (whiteToMove ? whitePawn[i] : blackPawn[i])
+			& (b->WhitePawnBB | b->BlackPawnBB) & others) != 0){
+		return true;
+	}
+	if ( (king[i] & (b->WhiteKingBB | b->BlackKingBB) & others) != 0){
+		return true;
+	}
+	if ( (knight[i] & (b->WhiteKnightBB | b->BlackKnightBB) & others) != 0){
+		return true;
+	}
+	if ( (getRookAttacks(i, all)
+			& ( (b->WhiteRookBB | b->BlackRookBB) | (b->WhiteQueenBB | b->BlackQueenBB)) & others) != 0){
+		return true;
+	}
+	if ( (getBishopAttacks(i, all)
+			& ( (b->WhiteBishopBB | b->BlackBishopBB) | (b->WhiteQueenBB | b->BlackQueenBB)) & others) != 0){
+		return true;
+	}
+	return false;
+}
 U64 getIndexAttacks(BoardInfo* b, int i) {
 	if (i < 0 || i > 63)
 		return 0;

@@ -125,6 +125,46 @@ U8 getAllLegalMovesSize(Board* b, ExtMove list[]){
 	}
 	return getAllLegalMoves(b,list);
 }
+
+bool isPsuedoLegalMoveLegal(Board * b, ExtMove move){
+	U8 to = to_sq(move.move);
+	U8 from = from_sq(move.move);
+	U64 kingBB = b->currentBoard()->whiteToMove ? b->currentBoard()->WhiteKingBB : b->currentBoard()->BlackKingBB;
+	if(type_of(move.move) == ENPASSANT){
+		b->fastMakeMove(move.move);
+		bool ret = b->legal();
+		b->undoMove();
+		return ret;
+	}
+	
+	if(PieceMoved(move.move) == KING){
+		if(type_of(move.move) == CASTLING){
+			//we check for castling being legal when generating king moves
+			return true;
+		}
+		//If we're moving to a safe square
+		if(!isIndexAttackedWithoutKing(b->currentBoard(), to, b->currentBoard()->whiteToMove)){
+			return true;
+		}
+		return false;
+	}
+	U64 mask;
+	if(b->currentBoard()->whiteToMove){
+		mask = potentiallyPinned[trailingZeroCount(b->currentBoard()->WhiteKingBB)];
+	}else{
+		mask = potentiallyPinned[trailingZeroCount(b->currentBoard()->BlackKingBB)];
+	}
+	//If it's not pinned to the king:
+	
+	//Otherwise if it is pinned:
+	//It has to be moving on the ray it is pinned.
+	
+	b->fastMakeMove(move.move);
+	bool ret = b->legal();
+	b->undoMove();
+	return ret;
+	
+}
 U8 getAllLegalMoves(Board* b, ExtMove list[]){
 	//Also actually generate by piece rather than calling PseudoLegal.
 	//If KING, CHECK.
@@ -149,6 +189,7 @@ U8 getAllLegalMoves(Board* b, ExtMove list[]){
 	}else{
 		mask = potentiallyPinned[trailingZeroCount(b->currentBoard()->BlackKingBB)];
 	}
+	U64 sliders = b->currentBoard()->whiteToMove ? b->currentBoard()->BlackRookBB | b->currentBoard()->BlackBishopBB| b->currentBoard()->BlackQueenBB : b->currentBoard()->WhiteRookBB | b->currentBoard()->WhiteBishopBB| b->currentBoard()->WhiteQueenBB;
 	if(check){
 		for (int i = 0; i < count; i++) {
 			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move)){
@@ -161,7 +202,7 @@ U8 getAllLegalMoves(Board* b, ExtMove list[]){
 		}
 	}else{
 		for (int i = 0; i < count; i++) {
-			if(mask & getSquare[from_sq(list[i])] || PieceMoved(list[i]) == KING){
+			if(((mask & getSquare[from_sq(list[i])]) && (mask & sliders))|| PieceMoved(list[i]) == KING){
 				b->fastMakeMove(list[i].move);
 				if(b->legal()){
 					list[j++] = list[i];
@@ -172,6 +213,13 @@ U8 getAllLegalMoves(Board* b, ExtMove list[]){
 			}
 		}
 	}
+	/*
+	int j = 0;
+	for(int i = 0; i < count ;i++){
+		if(isPsuedoLegalMoveLegal(b,list[i])){
+			list[j++] = list[i];
+		}
+	}*/
 	validCache = true;
 	legalMoveCount = j;
 	

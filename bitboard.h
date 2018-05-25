@@ -1,5 +1,3 @@
-
-
 #ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 #include "stdafx.h"
@@ -16,6 +14,9 @@ const U8 ENPASSANT_NONE = 111;
 U64 lowestOneBit(U64 i);
 int trailingZeroCount(U64 bb);//TODO improve this
 
+constexpr bool moreThanOneOccupant(U64 bb) {
+  return bb & (bb - 1);
+}
 
 enum Square : U8 {
   SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
