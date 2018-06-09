@@ -14,6 +14,12 @@ const U8 ENPASSANT_NONE = 111;
 U64 lowestOneBit(U64 i);
 int trailingZeroCount(U64 bb);//TODO improve this
 
+namespace Bitboard{
+	void initAttacks();
+}
+extern U64 rookSlides[64];
+extern U64 bishopSlides[64];
+
 constexpr bool moreThanOneOccupant(U64 bb) {
   return bb & (bb - 1);
 }
@@ -39,7 +45,8 @@ enum File : int {
 enum Rank : int {
   RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
 };
-
+extern U64 alignedBB[64][64];
+extern U64 squaresBetween[64][64];
 extern U64 maskRank[8];
 extern U64 maskFile[8];
 extern U64 clearRank[8];

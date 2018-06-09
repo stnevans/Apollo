@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "move.h"
+#ifndef TRANSPO_H_INCLUDED
+#define TRANSPO_H_INCLUDED
 
 struct tt_entry {
     U64  hash;
@@ -22,3 +24,4 @@ namespace TT{
 	void save(U64 key, int eval, U8 flags, Move bestMove, U8 depth); 
 	void nextGeneration();
 }
+#endif

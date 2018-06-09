@@ -312,6 +312,7 @@ Board& Board::readFromFen(std::string& fenStr, BoardInfo* board){
   }
   board->zobrist = initKeyFromBoard(this);
   validCache = false;
+  setPinnedPieces();
   return *this;
 }
 
@@ -407,15 +408,6 @@ char Board::getPieceAtChar(U8 loc){
 	}else{
 		return ' ';
 	}
-}
-void printMove1(Move m){
-	char from[3], to[3];
-	char* arr = getAlgebraicPos(from_sq(m));
-	from[0] = arr[0];from[1]=arr[1];from[2]=arr[2];
-	
-	arr = getAlgebraicPos(to_sq(m));
-	to[0] = arr[0];to[1]=arr[1];to[2]=arr[2];
-	printf("%s %s\n",from,to);
 }
 /*
 * Makes a move as quickly as possible. To do this, it ignores zobrist and castling variables.
@@ -570,6 +562,32 @@ void Board::fastMakeMove(Move move){
 	updateSpecialBB(newInfo);
 	validCache=false;
 }
+void Board::setPinnedPieces(){
+	U64 pinned = 0;
+	U64 rookAttackers;
+	U64 bishopAttackers;
+	U8 king;
+	if(boardInfo->whiteToMove){	
+		king = trailingZeroCount(boardInfo->WhiteKingBB);
+		rookAttackers = rookSlides[trailingZeroCount(boardInfo->WhiteKingBB)] & (boardInfo->BlackRookBB | boardInfo->BlackQueenBB);
+		bishopAttackers = bishopSlides[trailingZeroCount(boardInfo->WhiteKingBB)] & (boardInfo->BlackBishopBB | boardInfo->BlackQueenBB); 
+	}else{
+		king = trailingZeroCount(boardInfo->BlackKingBB);
+		rookAttackers = rookSlides[trailingZeroCount(boardInfo->BlackKingBB)] & (boardInfo->WhiteRookBB | boardInfo->WhiteQueenBB);
+		bishopAttackers = bishopSlides[trailingZeroCount(boardInfo->BlackKingBB)] & (boardInfo->WhiteBishopBB | boardInfo->WhiteQueenBB); 
+	}
+	U64 allAttackers = rookAttackers | bishopAttackers;
+	while(allAttackers != 0){
+		U64 lowBit = lowestOneBit(allAttackers);
+		U64 piecesBetween=squaresBetween[king][trailingZeroCount(lowBit)]&boardInfo->AllPiecesBB;
+		if((piecesBetween != 0) && !moreThanOneOccupant(piecesBetween)){
+			pinned |= piecesBetween;
+		}
+		allAttackers ^= lowBit;
+	}
+	boardInfo->pinnedPieces = pinned;
+}
+
 void Board::makeMove(Move move){
 	//TODO test this speed vs manually copying. No idea what's faster. also maybe *newInfo = *board Info
 	//Copy current BoardInfo
@@ -842,6 +860,7 @@ void Board::makeMove(Move move){
 	newInfo->zobrist^=whiteMove;
 	updateSpecialBB(newInfo);
 	newInfo->lastMove = move;
+	setPinnedPieces();
 }
 
 void Board::undoMove(){
@@ -865,6 +884,7 @@ void Board::makeNullMove(){
 	boardInfo=newInfo;
 	newInfo->lastMove = 0;
 	validCache=false;
+	setPinnedPieces();
 	//updateSpecialBB(newInfo);
 }
 

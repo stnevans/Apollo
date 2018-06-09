@@ -213,9 +213,9 @@ bool UCI::loop(){
 	BoardInfo info;
 	std::string token, cmd;
 	
-	TT::setSize(1048576*32);
+	TT::setSize(1048576*32);//1mb
 	b.readFromFen(StartPositionFEN,&info);
-	std::cout << ("Apollo v1.2 by Stuart Nevans Locke") << std::endl;
+	std::cout << ("Apollo v1.2.0 by Stuart Nevans Locke") << std::endl;
 	while(true){
 		getline(cin,cmd);
 		istringstream parser(cmd);
@@ -224,7 +224,7 @@ bool UCI::loop(){
 			return false;
 		}
 		if(token == "uci"){
-			std::cout << "id name Apollo Release 1.2\n";
+			std::cout << "id name Apollo Release 1.2.0\n";
 			std::cout << "id author Stuart Nevans Locke\n\n";
 			printUciOptions();
 			std::cout << "uciok" << std::endl;
@@ -249,7 +249,7 @@ bool UCI::loop(){
 				bestMove = TT::probe(b.currentBoard()->zobrist)->bestMove;
 			}
 			char buffer[100];
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nEval %i\nHash Move: %s\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist, Eval::evaluate(&b), UCI::getMoveString(bestMove,buffer));
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nEval %i\nHash Move: %s\nPinned Pieces %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist, Eval::evaluate(&b), UCI::getMoveString(bestMove,buffer),b.currentBoard()->pinnedPieces);
 		}
 	}
 	return true;

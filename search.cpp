@@ -1,3 +1,21 @@
+/*
+* This file contains the code for the actual search. It uses iterative deepening with alphabeta pruning and a negamax search.
+* An aspiration window is used with a window of 50 centipawns from the previous search.
+* The other pruning techniques used are:
+* - Null Move Pruning
+* - Futility Pruning
+* The quiesence search uses very aggressive delta pruning
+* Move Ordering depends on the following methods:
+*  Quiet Moves:
+*   - History Heuristic
+*   - Killer Moves, 2 are stored
+*   - Countermove Heuristic
+*  Non-Quiet Moves:
+*   - Captures: MVVLVA
+*   - Promotions: Same as Quiet
+*   - Checks: Same as Quiet
+* -
+*/
 #include "search.h"
 #include "move.h"
 #include "eval.h"
@@ -142,30 +160,30 @@ Move Search::iterativeDeepening(Board * board){
 	int eval;
 	for(int depth = 1; depth < MAX_DEPTH; depth++){
 		nodeCount = 0;optimalMoveOrder=0;badMoveOrder=0;
-		LINE line;
+		LINE pvLine;
 		startDepth=depth;
 		currentlyFollowingPv = true;
 		canDoNullMove = true;
-		//Move curMove = getAlphabetaMove(board, depth, &line);
 		
 		//Aspiration window is handled here.
+		//One idea, get "perfect" root move ordering, meaning save more than just the best move, but rather the best few moves for better ordering. next iteration.
 		if(depth > 1){	
 			int newEval;
-			newEval = alphabetaHelper(board,eval-50,eval+50,depth);
+			newEval = alphabetaHelper(board,eval-50,eval+50,depth,&pvLine);
 			if((newEval <= eval-50) || (newEval >= eval+50)){
 				currentlyFollowingPv=true;
-				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth);
+				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&pvLine);
 			}
 			eval = newEval;
 		}else{
-			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth);
+			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&pvLine);
 		}
 		Move curMove = TT::probe(board->currentBoard()->zobrist)->bestMove;
+		curMove = pvLine.argmove[0];
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
 		bestMove = curMove;
-		
 		//Print info about the search we just did
 		//Not really the true nps.
 		if(mateIn(score, board->currentBoard()) != 0){
@@ -175,31 +193,20 @@ Move Search::iterativeDeepening(Board * board){
 				printf("info depth %i score cp %i nodes %llu nps %lu time %i opt %llu bad %llu pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000),optimalMoveOrder,badMoveOrder);
 			}
 		}
-		int pvLength = 0;
+		
 		char buffer[100];
-		for(int i = 0; i < depth; i++){
-			if(TT::probe(board->currentBoard()->zobrist)->hash == board->currentBoard()->zobrist){
-				if(TT::probe(board->currentBoard()->zobrist)->bestMove != 0){
-					printf(" %s",UCI::getMoveString(TT::probe(board->currentBoard()->zobrist)->bestMove,buffer));
-					board->makeMove(TT::probe(board->currentBoard()->zobrist)->bestMove);
-					pvLength++;
-				}
-			}else{
-				break;
-			}
-		}
-		for(int i = 0; i < pvLength; i++){
-			board->undoMove();
+		
+		for(int i = 0; i < pvLine.cmove; i++){
+			printf(" %s",UCI::getMoveString(pvLine.argmove[i],buffer));
 		}
 		printf("\n");
-		
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
 			}
 		}
 		
-		lastPv = line;
+		lastPv = pvLine;
 		//Check uci stop command?
 	}
 	cfg->movetime=0;
@@ -209,10 +216,10 @@ Move Search::iterativeDeepening(Board * board){
 	
 	return bestMove;
 }
-
-//Cache movesgenerated. An idea, but currently we call evaluate, which generates all 
-int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
+//Further idea::TODO:: don't generate all moves, just play tt move. then generate moves later. The idea is that we hope for a beta cutoff. Also might be worth it to do the same for killerMoves, but probably not because it seems like they would often be illegal.
+int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
 	LINE line;
+	LINE useless;
 	int alphaHits = 0;
 
 	ExtMove moves[MAX_MOVES];
@@ -220,7 +227,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	Move bestMove=0;
 
 	int curEval = Eval::evaluate(board);
-	if(board->isRepetition()){
+	if(board->isRepetition()){//Note this is buggy, it should only check if there's a repetition since the original move number.
 		return 0;
 	}
 	if(depth <= 0 || moveCount == 0){
@@ -245,12 +252,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		if(entry->depth >= depth){
 			int eval = entry->eval;
 			//if(eval <= beta && eval >= alpha){
-				//if checkmate, adjust ply
-				if(eval < (INT_MIN+1200)){
-					
-				}else if(eval > (-(INT_MIN+1200))){
-					
-				}
 				
 				if((entry->flags) == TT_EXACT && (!currentlyFollowingPv)){
 					return eval;
@@ -270,12 +271,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 			//}
 		}
 	}else if(depth > 8){
-		//INTERNAL ITERATIVE DEEPENING (IID)
-		alphabetaHelper(board,alpha,beta,4);
+		//INTERNAL ITERATIVE DEEPENING (IID). Might not add strength in the current setup, especially if the hash table is set to only accept larger depths in which case this likely is only a waste of time.   
+		alphabetaHelper(board,alpha,beta,4,&useless);
 	}
 	
 
-	
 	if((nodeCount/3000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
@@ -286,21 +286,17 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 	
 	//Null Move
 	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck()){
-		LINE useless;
 		canDoNullMove=false;
 		board->makeNullMove();
-		int reduction = 4;
-		if(depth > 7){
-			reduction = 5;
-		}
-		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction);
+		int reduction = depth/4+3;
+		
+		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
 		board->undoMove();
 		canDoNullMove=true;
 		if(val >= beta){
 			return beta;
 		}
 	}
-
 	canDoNullMove=true;
 
 	
@@ -322,10 +318,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		}
 		//PVS Search
 		if(i>0){
-				val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth);
+				val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth, &line);
 		}
 		if(val > alpha || i <=0){
-			val = -alphabetaHelper(board, -beta, -alpha, newDepth);
+			val = -alphabetaHelper(board, -beta, -alpha, newDepth, &line);
 		}
 		board->undoMove();
 		
@@ -333,6 +329,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 		
 		//Update the pv
 		if(val > alpha){
+			pline->argmove[0] = moves[i].move;
+			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+			pline->cmove = line.cmove + 1;
+
 			if(i ==0){
 				optimalMoveOrder++;
 			}else{
@@ -396,7 +396,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth){
 
 //Ignoring in the pv for now.
 int Search::quiesce(Board * board, int alpha, int beta){
-	
 	//if(board->isOwnKingInCheck()){
 	//	return alphabetaHelper(board,alpha,beta,1);
 	//}
@@ -413,8 +412,8 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	U8 moveCount = Movegen::getAllCaptures(board,moves);
 	Move bestMove;
 	for(int i = 0; i < moveCount; i++){
-		//delta pruning
 		orderMoves(moves,board,moveCount,0,0,i,board->currentBoard()->whiteToMove);
+		//delta pruning
 		//Endgames, with an extra buffer in case of large piece captured.
 		if(board->currentSideMaterial() > 1500){
 			//IN quiescence, score represents the static exchange. Way too aggressive delta pruning.
@@ -440,8 +439,21 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	return alpha;
 }
 void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDepthSearched, int depth, int idx, bool whiteToMove){
-	//if tt:probe(board) 
+	if(currentlyFollowingPv){
+		if(startDepth-depth < lastPv.cmove){
+			Move entryMove = lastPv.argmove[startDepth-depth];
+			for(int i = idx; i < numMoves; i++){
+				if(entryMove==moves[i].move){
+					ExtMove temp = moves[i];
+					moves[i] = moves[idx];
+					moves[idx] = temp;
+					return;
+				}
+			}
+		}
+	}
 	if(idx < 1){
+		//TODO experiment not swapping, not even movegenning.
 		tt_entry* entry = TT::probe(board->currentBoard()->zobrist);
 		if(entry->hash == board->currentBoard()->zobrist){
 			Move entryMove = entry->bestMove;
@@ -454,39 +466,31 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 				}
 			}
 		}
-		//Order by pv move without testing if we are in the pv.
-		/*if(currentlyFollowingPv && depth > 1){
-			for(int i = idx; i < numMoves; i++){
-				if(lastPv.argmove[curDepthSearched] == moves[i].move){
-					ExtMove temp = moves[i];
-					moves[i] = moves[idx];
-					moves[idx] = temp;
-					return;
-				}
-			}
-		}*/
 	}
 	
 	int max = moves[idx].score;
 	int maxIdx = idx;
 	for(int i = idx; i < numMoves; i++){
+		//Killer moves.
 		if(killerMoves[depth][0] ==moves[i].move || killerMoves[depth][1] == moves[i].move){
 			ExtMove temp = moves[i];
 			moves[i] = moves[idx];
 			moves[idx] = temp;
 			return;
 		}
-		//Non captures are sorted by heuristic. Captures are done by mvvlva
+		//Sort non captures. We use history and a countermove bonus.
 		if(!isCapture(moves[i].move)){
 			if(whiteToMove){
 				moves[i].score = whiteHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];
 			}else{
 				moves[i].score = blackHeuristic[from_sq(moves[i].move)][to_sq(moves[i].move)];	
 			}
+			//Counter move bonus
 			if(moves[i].move == counterMove[from_sq(board->currentBoard()->lastMove)][to_sq(board->currentBoard()->lastMove)]){
 				moves[i].score+=2000;
 			}
 		}
+		//We assume captures already have score set based on MVVLVA
 		if(moves[i].score > max){
 			max = moves[i].score;
 			maxIdx = i;
@@ -504,7 +508,6 @@ void Search::orderMoves(ExtMove moves[], Board * board, int numMoves, int curDep
 /*
 * Called before movegenning. Basically tests if it's feasible for any move to make it bad enough that the value is below beta.
 */
-//TODO make sure this doesn't screw things up.
 bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, int depthToGo, int curEval){
 	if(depthToGo > futilitySize || depthSearched == 0){
 		return false;
@@ -522,20 +525,24 @@ bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, 
 */
 //Maybe in the if start futility pruning at 1 rather than passing moves searched 
 bool Search::isMoveFutile(Board * b, int depthSearched, int depthToGo, int movesSearched, Move move, int alpha, int beta, int curEval){
-	if(depthToGo > futilitySize || depthSearched == 0){//4 is size of futilityMoves
+	if(depthToGo > futilitySize || depthSearched <= 0){
 		return false;
 	}
+	//Calling the first move futile might not be smart
 	if(movesSearched == 0){
 		return false;
 	}
+	
+	//Is some king in trouble
 	if(b->isOwnKingInCheck()){
 		return false;
 	}
 	if(b->isMoveCheck(move)){
 		return false;
 	}
-	BoardInfo * boardInfo = b->currentBoard();
 	
+	
+	BoardInfo * boardInfo = b->currentBoard();
 	//Pushing to 7th rank is scary
 	if((PieceMoved(move) == PAWN)){
 		if(boardInfo->whiteToMove){
@@ -548,9 +555,8 @@ bool Search::isMoveFutile(Board * b, int depthSearched, int depthToGo, int moves
 			}
 		}
 	}
-	//Capture moves are not futile:
 	int futilityValue = futilityMoves[depthToGo];
-
+	//Bad captures are futile too.
 	if(isCapture(boardInfo,move)){return b->staticExchange(move)+curEval+futilityValue < alpha;}
 	return (curEval+futilityValue) < alpha;
 }

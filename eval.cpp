@@ -1,3 +1,15 @@
+/*
+* This file contains the logic for evaluating a given position. 
+* The main function called outside of the file is Eval::evaluate(Board *b). 
+* The features currently being used for board evaluation are:
+* Centralization of pieces
+* Material Value of Pieces
+* Isolated, Passed, and Doubled Pawns
+* Open and Semiopen files. 
+* A pawn sheild for king safety, however hte king safety still leaves much to be desired.
+* In endgames, we also specifically try to encourage advanced pawns and discourage kings on the sides of boards if there are no pawns. 
+*/
+
 #include "eval.h"
 #include "board.h"
 #include <limits.h>

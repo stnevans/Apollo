@@ -45,6 +45,8 @@ struct BoardInfo{
 	BitBoard WhitePiecesBB;
 	BitBoard BlackPiecesBB;
 	BitBoard AllPiecesBB;
+	
+	U64 pinnedPieces;
 	BoardInfo * previousBoard;//in Transpo table need depth, full board info, value, best move
 };
 
@@ -78,7 +80,7 @@ class Board{
 		BitBoard* getBitBoard(PieceType type, bool whiteToMove);
 		BitBoard getAllPiecesBitBoard(bool whiteToMove);
 		BoardInfo* boardInfo;
-		
+		void setPinnedPieces();
 	
 };
 extern bool validCache;

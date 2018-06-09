@@ -1,7 +1,7 @@
 
 #ifndef BBMAGIC_H_INCLUDED
 #define BBMAGIC_H_INCLUDED
-
+#include "board.h"
 #include "stdafx.h"
 
 

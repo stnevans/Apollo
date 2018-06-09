@@ -1,17 +1,40 @@
 #include "bitboard.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "bbmagic.h"
  U64 maskRank[8]={};
  U64 maskFile[8]={};
  U64 clearRank[8]={};
  U64 clearFile[8]={};
  U64 getSquare[64]={};
  char alge[3]={};
+ 
+U64 rookSlides[64]={};
+U64 bishopSlides[64]={};
+
  U64 lowestOneBit(U64 i){
 	return i & -((S64) i);
 }
+U64 squaresBetween[64][64]={};
+U64 alignedBB[64][64]={};
 
+void Bitboard::initAttacks(){
+	for(int i = 0; i <64; i++){
+		rookSlides[i] = getRookAttacks(i,0);
+		bishopSlides[i]=getBishopAttacks(i,0);
+	}
+	
+	for(int i = 0; i < 64; i++){
+		for(int j = 0; j < 64; j++){
+			squaresBetween[i][j] = (getRookAttacks(i,getSquare[j]))&(getRookAttacks(j,getSquare[i]));
+			alignedBB[i][j] = (getRookAttacks(i,0))&(getRookAttacks(j,0))|getSquare[i]|getSquare[j];
+			if(getFile(i) != getFile(j) && getRank(i) != getRank(j)){
+				squaresBetween[i][j] = (getBishopAttacks(i,getSquare[j]))&(getBishopAttacks(j,getSquare[i]));
+				alignedBB[i][j] = (getRookAttacks(i,0))&(getRookAttacks(j,0))|getSquare[i]|getSquare[j];
+			}
+		}
+	}
+}
 U8 popcnt(U64 bb){
 	#ifdef _WIN32
 	#ifdef _WIN64

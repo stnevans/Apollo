@@ -7,6 +7,7 @@
 #include "movegen.h"
 #include "uci.h"
 #include "search.h"
+#include "bitboard.h"
 #include "zobrist.h"
 void printMove(Move m){
 	char from[3], to[3];
@@ -109,6 +110,7 @@ int main(){
 	startFen="n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1";
 	b.readFromFen(startFen,&bi);
 	printf("Passed Tests\n");*/
+	Bitboard::initAttacks();
 	UCI::loop();
 	return 0;
 }
