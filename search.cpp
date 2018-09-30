@@ -191,7 +191,7 @@ Move Search::iterativeDeepening(Board * board){
 			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score,board->currentBoard()),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}else{
 			if(!board->isCheckmate()){
-				printf("info depth %i score cp %i nodes %llu nps %lu time %i %llu pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 			}
 		}
 		
