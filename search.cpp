@@ -38,7 +38,8 @@ void Search::setConfig(Search::Config * config){
 
 constexpr int futilitySize = 4; 
 int futilityMoves[] = {0,100,200,400,600};
-
+int reverseFutilityValues[] = {0,200,400,600,800};
+//int razor[]={0,200,350};
 bool inline isCapture(BoardInfo * b, Move m){
 	//must be prior to playing move
 	if(b->whiteToMove){
@@ -190,7 +191,7 @@ Move Search::iterativeDeepening(Board * board){
 			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score,board->currentBoard()),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}else{
 			if(!board->isCheckmate()){
-				printf("info depth %i score cp %i nodes %llu nps %lu time %i opt %llu bad %llu pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000),optimalMoveOrder,badMoveOrder);
+				printf("info depth %i score cp %i nodes %llu nps %lu time %i %llu pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 			}
 		}
 		
@@ -283,6 +284,8 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
 		return beta;
 	}
+	
+	
 	
 	//Null Move
 	if(canDoNullMove && !currentlyFollowingPv && board->currentSideMaterial() > 1000 && !board->isOwnKingInCheck()){
@@ -400,7 +403,6 @@ int Search::quiesce(Board * board, int alpha, int beta){
 	//	return alphabetaHelper(board,alpha,beta,1);
 	//}
 	int curEval = Eval::evaluate(board);
-	
 	if(curEval >= beta){
 		return beta;
 	}
@@ -515,7 +517,7 @@ bool Search::isPositionFutile(Board *b, int alpha, int beta, int depthSearched, 
 	if(b->isOwnKingInCheck()){
 		return false;
 	}
-	int futilityValue = futilityMoves[depthToGo];
+	int futilityValue = reverseFutilityValues[depthToGo];
 	return curEval-futilityValue > beta;
 }
 /*
