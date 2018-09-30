@@ -138,7 +138,26 @@ void printUciOptions(){
 	std::cout<<"option name Hash type spin default 32 min 1 max 1048576\n";
 }
 void setOption(istringstream *parser){
-
+	string token;
+	if((*parser) >> token){
+			if(token == "name"){
+					if((*parser) >> token){
+						if(token == "Hash"){
+							if((*parser) >> token){
+								if(token == "value"){
+									if((*parser) >> token){
+										int size = atoi(token.c_str());
+										TT::setSize(1048576*size);
+										return;
+									}
+								}
+							}
+						}
+					}
+			}
+	}
+	printf("Unrecognized option\n");
+	return;
 }
 void UCI::go(Board * board, istringstream *parser){
 		char buffer[100];
@@ -235,7 +254,7 @@ bool UCI::loop(){
 			std::cout << "readyok" << std::endl;
 		}else if(token == "position"){
 			setPosition(&b,&info,&parser);
-		}else if(token=="option"){
+		}else if(token=="setoption"){
 			setOption(&parser);
 		}else if(token == "go"){
 			go(&b,&parser);
