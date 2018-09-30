@@ -30,14 +30,17 @@ void Bitboard::initAttacks(){
 			alignedBB[i][j] = (getRookAttacks(i,0))&(getRookAttacks(j,0))|getSquare[i]|getSquare[j];
 			if(getFile(i) != getFile(j) && getRank(i) != getRank(j)){
 				squaresBetween[i][j] = (getBishopAttacks(i,getSquare[j]))&(getBishopAttacks(j,getSquare[i]));
-				alignedBB[i][j] = (getRookAttacks(i,0))&(getRookAttacks(j,0))|getSquare[i]|getSquare[j];
+				alignedBB[i][j] = (getBishopAttacks(i,0))&(getBishopAttacks(j,0))|getSquare[i]|getSquare[j];
 			}
 		}
 	}
 }
+#ifdef _WIN64
+//#define USE_POPCNT
+#endif
 U8 popcnt(U64 bb){
 	#ifdef _WIN32
-	#ifdef _WIN64
+	#ifdef USE_POPCNT
 		return __popcnt64(bb);
 	#else
 		   int count = 0;
