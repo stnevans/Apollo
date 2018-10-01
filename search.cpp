@@ -228,9 +228,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	Move bestMove=0;
 
 	int curEval = Eval::evaluate(board);
-	if(board->isRepetition()){//Note this is buggy, it should only check if there's a repetition since the original move number.
+	if(board->isRepetition() && TT::probe(board->currentBoard()->zobrist)->hash==board->currentBoard()->zobrist){//Note this is buggy, it should only check if there's a repetition since the original move number.
 		return 0;
 	}
+	
 	if(depth <= 0 || moveCount == 0){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
@@ -306,7 +307,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	bool whiteToMove = currentBoard->whiteToMove;
 	for(int i = 0; i < moveCount; i++){
 		orderMoves(moves,board,moveCount,startDepth-depth,depth,i,whiteToMove);
-
 		if(isMoveFutile(board,startDepth-depth,depth,i,moves[i].move,alpha,beta,curEval)){
 			continue;
 		}

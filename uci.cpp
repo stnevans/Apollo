@@ -234,7 +234,7 @@ bool UCI::loop(){
 	
 	TT::setSize(1048576*32);//1mb
 	b.readFromFen(StartPositionFEN,&info);
-	std::cout << ("Apollo v1.2.0 by Stuart Nevans Locke") << std::endl;
+	std::cout << ("Apollo v1.2.1 by Stuart Nevans Locke") << std::endl;
 	while(true){
 		getline(cin,cmd);
 		istringstream parser(cmd);
