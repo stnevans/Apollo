@@ -243,7 +243,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	if(depth <= 0 || moveCount == 0){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
-			//pline->cmove = 0;
+			pline->cmove = 0;
 		}else{
 			score = curEval;
 			return curEval;
@@ -326,7 +326,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		}
 		//PVS Search
 		if(i>0){
-				val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth, &line);
+			val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth, &line);
 		}
 		if(val > alpha || i <=0){
 			val = -alphabetaHelper(board, -beta, -alpha, newDepth, &line);
