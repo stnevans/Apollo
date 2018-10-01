@@ -243,7 +243,7 @@ bool UCI::loop(){
 			return false;
 		}
 		if(token == "uci"){
-			std::cout << "id name Apollo Release 1.2.0\n";
+			std::cout << "id name Apollo Release 1.2.1\n";
 			std::cout << "id author Stuart Nevans Locke\n\n";
 			printUciOptions();
 			std::cout << "uciok" << std::endl;
