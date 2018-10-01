@@ -38,7 +38,7 @@ void Search::setConfig(Search::Config * config){
 
 constexpr int futilitySize = 4; 
 int futilityMoves[] = {0,100,200,400,600};
-int reverseFutilityValues[] = {0,200,400,600,800};
+int reverseFutilityValues[] = {0,200,330,600,800};
 //int razor[]={0,200,350};
 bool inline isCapture(BoardInfo * b, Move m){
 	//must be prior to playing move
@@ -259,7 +259,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		if(entry->depth >= depth){
 			int eval = entry->eval;
 			//if(eval <= beta && eval >= alpha){
-				
 				if((entry->flags) == TT_EXACT && (!currentlyFollowingPv)){
 					return eval;
 				}else if((entry->flags)== TT_BETA){
