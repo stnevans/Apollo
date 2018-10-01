@@ -54,7 +54,7 @@ int noPawnKingSquare[] = {-20,-10,-10,-10,-10,-10,-10,-20,
 						-10,0,1,1,1,1,0,-10,
 						-10,0,0,0,0,0,0,-10,
 						-20,-10,-10,-10,-10,-10,-10,-20};
-					   
+const int tempo = 5;
 int centralizationValue(U64 bb){
 	int eval = 0;
 	while(bb != 0){
@@ -236,9 +236,9 @@ int Eval::basicEvaluate(Board * b){
 	//bishops
 	
 	if(info->whiteToMove){
-		return eval; 
+		return eval+tempo;//tempo 
 	}else{
-		return -eval;
+		return -eval-tempo;
 	}
 }
 int Eval::materialEvaluate(BoardInfo * b, bool whiteToMove){//TODO debug why drawn positions seemed to trigger isCheckmate?!
