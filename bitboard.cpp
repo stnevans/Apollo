@@ -36,7 +36,7 @@ void Bitboard::initAttacks(){
 	}
 }
 #ifdef _WIN64
-//#define USE_POPCNT
+#define USE_POPCNT
 #endif
 U8 popcnt(U64 bb){
 	#ifdef _WIN32
