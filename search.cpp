@@ -231,10 +231,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	tt_entry* entry = TT::probe(currentBoard->zobrist);
 
 	if(board->isRepetition() && entry->hash==currentBoard->zobrist && entry->depth >= depth){//Note this is buggy, it should only check if there's a repetition since the original move number.
-		pline->argmove[0] = entry->bestMove;
-		memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-		pline->cmove = line.cmove + 1;
-		
+		if(currentlyFollowingPv){
+			pline->argmove[0] = entry->bestMove;
+			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+			pline->cmove = line.cmove + 1;
+		}
 		return 0;
 	}
 	int curEval = Eval::evaluate(board);
