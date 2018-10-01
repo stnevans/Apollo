@@ -227,10 +227,13 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	U8 moveCount = getAllLegalMoves(board,moves);
 	Move bestMove=0;
 
-	int curEval = Eval::evaluate(board);
-	if(board->isRepetition() && TT::probe(board->currentBoard()->zobrist)->hash==board->currentBoard()->zobrist){//Note this is buggy, it should only check if there's a repetition since the original move number.
+	BoardInfo* currentBoard = board->currentBoard();
+	tt_entry* entry = TT::probe(currentBoard->zobrist);
+
+	if(board->isRepetition() && entry->hash==currentBoard->zobrist && entry->depth >= depth){//Note this is buggy, it should only check if there's a repetition since the original move number.
 		return 0;
 	}
+	int curEval = Eval::evaluate(board);
 	
 	if(depth <= 0 || moveCount == 0){
 		currentlyFollowingPv=false;
@@ -248,8 +251,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 
 	//Handle transposition table here:
 	//The issue with copying a table in the mainline is repetition is ignored. Not fully sure why however.
-	BoardInfo* currentBoard = board->currentBoard();
-	tt_entry* entry = TT::probe(currentBoard->zobrist);
 	if(entry->hash == currentBoard->zobrist){
 		if(entry->depth >= depth){
 			int eval = entry->eval;
