@@ -99,7 +99,7 @@ void Search::calculateMovetime(Board* b){
 		}else if(moveNum < 200){
 			expectedMoves = 220;
 		}else{
-			expectedMoves = 320;
+			expectedMoves = moveNum + 20; //Prevents ply 320 from being an absolute end-all
 		}	
 		int movesToGo = expectedMoves-moveNum;
 		config->movetime = toMoveTime/movesToGo;
@@ -148,7 +148,7 @@ Move Search::iterativeDeepening(Board * board){
 	Move bestMove=-1;
 	double startTime = get_wall_time();
 	
-	TT::nextGeneration();
+	TT::nextGeneration(); //En-En: As far as I'm aware, the generation data is absolutely meaningless
 	
 	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
 	for(int i = 0; i < 64; i++){
@@ -179,12 +179,12 @@ Move Search::iterativeDeepening(Board * board){
 		}else{
 			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&pvLine);
 		}
-		Move curMove = TT::probe(board->currentBoard()->zobrist)->bestMove;
-		curMove = pvLine.argmove[0];
+
+		bestMove = (pvLine.cmove > 0) ? pvLine.argmove[0] : TT::probe(board->currentBoard()->zobrist)->bestMove;
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
-		bestMove = curMove;
+
 		//Print info about the search we just did
 		//Not really the true nps.
 		if(mateIn(score, board->currentBoard()) != 0){
@@ -221,10 +221,12 @@ Move Search::iterativeDeepening(Board * board){
 int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
 	LINE line;
 	LINE useless;
+	line.cmove = 0;
+	useless.cmove = 0;
 	int alphaHits = 0;
 
 	ExtMove moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
+	U8 moveCount = getAllLegalMoves(board,moves); //En:En consider moving this to a bit later for a possible small speed-up
 	Move bestMove=0;
 
 	BoardInfo* currentBoard = board->currentBoard();
@@ -233,13 +235,15 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	if(board->isRepetition() && entry->hash==currentBoard->zobrist && entry->depth >= depth){//Note this is buggy, it should only check if there's a repetition since the original move number.
 		if(currentlyFollowingPv){
 			pline->argmove[0] = entry->bestMove;
+			//TODO: line is not properly initialized here
 			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
 			pline->cmove = line.cmove + 1;
 		}
 		return 0;
 	}
-	int curEval = Eval::evaluate(board);
+	int curEval = Eval::evaluate(board); //En-En: Possibly also able to be pushed to a little later
 	
+	//En-En: Simplify this a little
 	if(depth <= 0 || moveCount == 0){
 		currentlyFollowingPv=false;
 		if(depth <= 0){
@@ -282,7 +286,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		alphabetaHelper(board,alpha,beta,4,&useless);
 	}
 	
-
+	//En-En: I assume that the first coniditions is designed to work like nodeCount < 3000
 	if((nodeCount/3000 == 0) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
