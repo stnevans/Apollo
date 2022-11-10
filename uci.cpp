@@ -261,14 +261,14 @@ bool UCI::loop(){
 		}else if(token == "perft"){
 			perft(&b,&parser);
 		}else if(token == "eval"){
-			printf("Current Position: %i\n",Eval::evaluate(&b));
+			printf("Current Position: %i\n",Eval::evaluate(&b,0));
 		}else if(token == "d"){
 			Move bestMove=65;
 			if(TT::probe(b.currentBoard()->zobrist)->hash == b.currentBoard()->zobrist){
 				bestMove = TT::probe(b.currentBoard()->zobrist)->bestMove;
 			}
 			char buffer[100];
-			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nEval %i\nHash Move: %s\nPinned Pieces %llx\n", b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist, Eval::evaluate(&b), UCI::getMoveString(bestMove,buffer),b.currentBoard()->pinnedPieces);
+			printf("FEN: %s\nIs checkmate: %i\nIs draw: %i\nZobrist: %llx\nEval %i\nHash Move: %s\nHash Eval: %i\nPinned Pieces %llx\n",b.getFen().c_str(), b.isCheckmate(), b.isDraw(), b.currentBoard()->zobrist, Eval::evaluate(&b,0), UCI::getMoveString(bestMove,buffer), TT::probe(b.currentBoard()->zobrist)->eval, b.currentBoard()->pinnedPieces);
 		}
 	}
 	return true;

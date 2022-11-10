@@ -22,8 +22,8 @@ namespace Search{
 	
 	typedef struct LINE LINE;
 	typedef struct Config Config;
-	int alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline);
-	int quiesce(Board * board, int alpha, int beta);
+	int alphabetaHelper(Board * board, int alpha, int beta, int depth, int ply, LINE * pline);
+	int quiesce(Board * board, int alpha, int beta, int ply);
 	Move getBestMove(Board * board);
 	Move getAlphabetaMove(Board * board, int depth, LINE * line);
 	void setConfig(Config * config);

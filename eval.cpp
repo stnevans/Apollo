@@ -77,12 +77,12 @@ int centralizationValue(U64 bb, int *endGame){
 
 			   
 			   
-int Eval::basicEvaluate(Board * b){
+int Eval::basicEvaluate(Board * b, U8 ply){
 	if(b->isDraw()){
 		return 0;
 	}
 	if(b->isCheckmate()){
-		return INT_MIN+1000+b->currentBoard()->moveNumber;
+		return INT_MIN+1000+ply;
 	}
 	const int OPEN_FILE_VALUE = 25;
 	const int SEMI_OPEN_FILE_VALUE = 20;
@@ -255,6 +255,6 @@ int Eval::materialEvaluate(BoardInfo * b, bool whiteToMove){//TODO debug why dra
 		return -eval;
 	}
 }
-int Eval::evaluate(Board * b){
-	return basicEvaluate(b);	
+int Eval::evaluate(Board * b, U8 ply){
+	return basicEvaluate(b, ply);
 }
