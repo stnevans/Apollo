@@ -148,8 +148,6 @@ Move Search::iterativeDeepening(Board * board){
 	Move bestMove=-1;
 	double startTime = get_wall_time();
 	
-	TT::nextGeneration(); //En-En: As far as I'm aware, the generation data is absolutely meaningless
-	
 	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
 	for(int i = 0; i < 64; i++){
 		for(int j = 0; j < 64; j++){
@@ -226,7 +224,6 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 	int alphaHits = 0;
 
 	ExtMove moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves); //En:En consider moving this to a bit later for a possible small speed-up
 	Move bestMove=0;
 
 	BoardInfo* currentBoard = board->currentBoard();
@@ -241,22 +238,21 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 		}
 		return 0;
 	}
-	int curEval = Eval::evaluate(board,ply); //En-En: Possibly also able to be pushed to a little later
 	
-	//En-En: Simplify this a little
-	if(depth <= 0 || moveCount == 0){
+	if(depth <= 0){
 		currentlyFollowingPv=false;
-		if(depth <= 0){
-			pline->cmove = 0;
-		}else{
-			score = curEval;
-			return curEval;
-		}
+		pline->cmove = 0;
 		nodeCount++;
 		return quiesce(board,alpha,beta,ply);
 	}
-		
-	
+	//Theoretically, if a shortcut function for determining if any legal move exists, full move generation can be pushed back even further
+	//However, seeing as significant changes to move generation are planned, I'll leave that up to you. ;)
+	U8 moveCount = getAllLegalMoves(board,moves);
+	if(moveCount == 0){
+		currentlyFollowingPv=false;
+		score = Eval::noMovesEvaluate(board,ply);
+		return score;
+	}
 
 	//Handle transposition table here:
 	//The issue with copying a table in the mainline is repetition is ignored. Not fully sure why however.
@@ -270,18 +266,24 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 				eval -= ply;
 			}
 			//if(eval <= beta && eval >= alpha){
-				//TODO: En-En, store the table move in the pv, maybe resolves the pv issue
+				//If the best move is the move in the transpositon table, set the pv accordingly
 				if((entry->flags) == TT_EXACT && (!currentlyFollowingPv)){
+					pline->cmove = 1;
+					pline->argmove[0] = entry->bestMove;
 					return eval;
 				}else if((entry->flags)== TT_BETA){
 					if(!currentlyFollowingPv){
 						if(eval >= beta){
+							pline->cmove = 1;
+							pline->argmove[0] = entry->bestMove;
 							return beta;
 						}
 					}
 				}else if((entry->flags )== TT_ALPHA){
 					if(!currentlyFollowingPv){
 						if(eval <= alpha){
+							pline->cmove = 1;
+							pline->argmove[0] = entry->bestMove;
 							return alpha;
 						}
 					}
@@ -292,11 +294,12 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 		//INTERNAL ITERATIVE DEEPENING (IID). Might not add strength in the current setup, especially if the hash table is set to only accept larger depths in which case this likely is only a waste of time.   
 		alphabetaHelper(board,alpha,beta,4,ply,&useless);
 	}
-	
-	//En-En: I assume that the first coniditions is designed to work like nodeCount < 3000
-	if((nodeCount/3000 == 0) && get_wall_time() >= endTime){
+
+	//Considering the engine has multiple recorded instances of running out of time, I'm choosing to be more aggressive here (was 3000 prior)
+	if((nodeCount < 7500) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
+	int curEval = Eval::evaluate(board,ply);
 	//Hope to prune!
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
 		return beta;
