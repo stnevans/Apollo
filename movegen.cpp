@@ -189,7 +189,7 @@ U8 getAllLegalMoves(Board* b, ExtMove list[]){
 	U64 sliders = b->currentBoard()->whiteToMove ? b->currentBoard()->BlackRookBB | b->currentBoard()->BlackBishopBB| b->currentBoard()->BlackQueenBB : b->currentBoard()->WhiteRookBB | b->currentBoard()->WhiteBishopBB| b->currentBoard()->WhiteQueenBB;
 	if(check){
 		for (int i = 0; i < count; i++) {
-			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move)){
+			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move) || type_of(list[i].move) == ENPASSANT){
 				b->fastMakeMove(list[i].move);
 				if(b->legal()){
 					list[j++] = list[i];
@@ -1140,7 +1140,7 @@ U8 Movegen::getAllCaptures(Board * b, ExtMove list[]){
 	}
 	if(check){
 		for (int i = 0; i < movess; i++) {
-			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move)){
+			if(mask & getSquare[to_sq(list[i])] || PieceMoved(list[i]) == KING || isCapture(list[i].move) || type_of(list[i].move) == ENPASSANT){
 				b->fastMakeMove(list[i].move);
 				if(b->legal()){
 					list[j++] = list[i];

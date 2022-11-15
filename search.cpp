@@ -99,7 +99,7 @@ void Search::calculateMovetime(Board* b){
 		}else if(moveNum < 200){
 			expectedMoves = 220;
 		}else{
-			expectedMoves = 320;
+			expectedMoves = moveNum + 20; //Prevents ply 320 from being an absolute end-all
 		}	
 		int movesToGo = expectedMoves-moveNum;
 		config->movetime = toMoveTime/movesToGo;
@@ -132,11 +132,11 @@ const int nullMoveEndgame = 350;
 U64 optimalMoveOrder = 0;
 U64 badMoveOrder=0;
 
-int mateIn(int eval, BoardInfo * b){
+int mateIn(int eval){
 	if(eval < INT_MIN+1200){
-		return ((-(eval-(INT_MIN+1000)))+b->moveNumber)/2;
+		return (-eval+(INT_MIN+1000))/2;
 	}else if(eval > -(INT_MIN+1200)){
-		return ((-eval - (INT_MIN+1000))-b->moveNumber+1)/2;
+		return (-eval-(INT_MIN+1000)+1)/2;
 	}
 	return 0;
 }
@@ -147,8 +147,6 @@ Move Search::iterativeDeepening(Board * board){
 	endTime = cfg->endTime;
 	Move bestMove=-1;
 	double startTime = get_wall_time();
-	
-	TT::nextGeneration();
 	
 	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
 	for(int i = 0; i < 64; i++){
@@ -170,25 +168,25 @@ Move Search::iterativeDeepening(Board * board){
 		//One idea, get "perfect" root move ordering, meaning save more than just the best move, but rather the best few moves for better ordering. next iteration.
 		if(depth > 1){	
 			int newEval;
-			newEval = alphabetaHelper(board,eval-50,eval+50,depth,&pvLine);
+			newEval = alphabetaHelper(board,eval-50,eval+50,depth,0,&pvLine);
 			if((newEval <= eval-50) || (newEval >= eval+50)){
 				currentlyFollowingPv=true;
-				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&pvLine);
+				newEval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,0,&pvLine);
 			}
 			eval = newEval;
 		}else{
-			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,&pvLine);
+			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,0,&pvLine);
 		}
-		Move curMove = TT::probe(board->currentBoard()->zobrist)->bestMove;
-		curMove = pvLine.argmove[0];
+
+		bestMove = (pvLine.cmove > 0) ? pvLine.argmove[0] : TT::probe(board->currentBoard()->zobrist)->bestMove;
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
-		bestMove = curMove;
+
 		//Print info about the search we just did
 		//Not really the true nps.
-		if(mateIn(score, board->currentBoard()) != 0){
-			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score,board->currentBoard()),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+		if(mateIn(score) != 0){
+			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
 		}else{
 			if(!board->isCheckmate()){
 				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
@@ -218,13 +216,14 @@ Move Search::iterativeDeepening(Board * board){
 	return bestMove;
 }
 //Further idea::TODO:: don't generate all moves, just play tt move. then generate moves later. The idea is that we hope for a beta cutoff. Also might be worth it to do the same for killerMoves, but probably not because it seems like they would often be illegal.
-int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE * pline){
+int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int ply, LINE * pline){
 	LINE line;
 	LINE useless;
+	line.cmove = 0;
+	useless.cmove = 0;
 	int alphaHits = 0;
 
 	ExtMove moves[MAX_MOVES];
-	U8 moveCount = getAllLegalMoves(board,moves);
 	Move bestMove=0;
 
 	BoardInfo* currentBoard = board->currentBoard();
@@ -233,44 +232,58 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 	if(board->isRepetition() && entry->hash==currentBoard->zobrist && entry->depth >= depth){//Note this is buggy, it should only check if there's a repetition since the original move number.
 		if(currentlyFollowingPv){
 			pline->argmove[0] = entry->bestMove;
+			//TODO: line is not properly initialized here
 			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
 			pline->cmove = line.cmove + 1;
 		}
 		return 0;
 	}
-	int curEval = Eval::evaluate(board);
 	
-	if(depth <= 0 || moveCount == 0){
+	if(depth <= 0){
 		currentlyFollowingPv=false;
-		if(depth <= 0){
-			pline->cmove = 0;
-		}else{
-			score = curEval;
-			return curEval;
-		}
+		pline->cmove = 0;
 		nodeCount++;
-		return quiesce(board,alpha,beta);
+		return quiesce(board,alpha,beta,ply);
 	}
-		
-	
+	//Theoretically, if a shortcut function for determining if any legal move exists, full move generation can be pushed back even further
+	//However, seeing as significant changes to move generation are planned, I'll leave that up to you. ;)
+	U8 moveCount = getAllLegalMoves(board,moves);
+	if(moveCount == 0){
+		currentlyFollowingPv=false;
+		score = Eval::noMovesEvaluate(board,ply);
+		return score;
+	}
 
 	//Handle transposition table here:
 	//The issue with copying a table in the mainline is repetition is ignored. Not fully sure why however.
 	if(entry->hash == currentBoard->zobrist){
 		if(entry->depth >= depth){
 			int eval = entry->eval;
+			//adjust mate score to obtain an accurate distance-to-mate
+			if(eval < INT_MIN+1200){
+				eval += ply;
+			}else if(eval > -(INT_MIN+1200)){
+				eval -= ply;
+			}
 			//if(eval <= beta && eval >= alpha){
+				//If the best move is the move in the transpositon table, set the pv accordingly
 				if((entry->flags) == TT_EXACT && (!currentlyFollowingPv)){
+					pline->cmove = 1;
+					pline->argmove[0] = entry->bestMove;
 					return eval;
 				}else if((entry->flags)== TT_BETA){
 					if(!currentlyFollowingPv){
 						if(eval >= beta){
+							pline->cmove = 1;
+							pline->argmove[0] = entry->bestMove;
 							return beta;
 						}
 					}
 				}else if((entry->flags )== TT_ALPHA){
 					if(!currentlyFollowingPv){
 						if(eval <= alpha){
+							pline->cmove = 1;
+							pline->argmove[0] = entry->bestMove;
 							return alpha;
 						}
 					}
@@ -279,13 +292,14 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		}
 	}else if(depth > 8){
 		//INTERNAL ITERATIVE DEEPENING (IID). Might not add strength in the current setup, especially if the hash table is set to only accept larger depths in which case this likely is only a waste of time.   
-		alphabetaHelper(board,alpha,beta,4,&useless);
+		alphabetaHelper(board,alpha,beta,4,ply,&useless);
 	}
-	
 
-	if((nodeCount/3000 == 0) && get_wall_time() >= endTime){
+	//Considering the engine has multiple recorded instances of running out of time, I'm choosing to be more aggressive here (was 3000 prior)
+	if((nodeCount < 7500) && get_wall_time() >= endTime){
 		return INT_MIN;
 	}
+	int curEval = Eval::evaluate(board,ply);
 	//Hope to prune!
 	if(Search::isPositionFutile(board,alpha,beta,startDepth-depth,depth,curEval)){
 		return beta;
@@ -299,7 +313,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		board->makeNullMove();
 		int reduction = depth/4+3;
 		
-		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, &useless);
+		int val = -alphabetaHelper(board, -beta, -alpha, depth-reduction, ply+1, &useless);
 		board->undoMove();
 		canDoNullMove=true;
 		if(val >= beta){
@@ -326,10 +340,10 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 		}
 		//PVS Search
 		if(i>0){
-			val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth, &line);
+			val = -alphabetaHelper(board, -alpha-1, -alpha, newDepth, ply+1, &line);
 		}
 		if(val > alpha || i <=0){
-			val = -alphabetaHelper(board, -beta, -alpha, newDepth, &line);
+			val = -alphabetaHelper(board, -beta, -alpha, newDepth, ply+1, &line);
 		}
 		board->undoMove();
 		
@@ -376,7 +390,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 					counterMove[from_sq(currentBoard->lastMove)][to_sq(currentBoard->lastMove)] = moves[i].move;
 				}
 				score = beta;
-				TT::save(currentBoard->zobrist, beta, TT_BETA, bestMove, depth);
+				TT::save(currentBoard->zobrist, beta, TT_BETA, bestMove, depth, ply);
 				return beta;
 			}
 			alpha = val;
@@ -392,9 +406,9 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 			blackHeuristic[from_sq(bestMove)][to_sq(bestMove)] += depth*depth;
 		}
 				
-		TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth);
+		TT::save(currentBoard->zobrist, alpha, TT_EXACT, bestMove, depth, ply);
 	}else{
-		TT::save(currentBoard->zobrist,alpha,TT_ALPHA,moves[0].move,depth);
+		TT::save(currentBoard->zobrist,alpha,TT_ALPHA,moves[0].move,depth,ply);
 		bestMove=moves[0].move;
 	}
 	return alpha;
@@ -403,11 +417,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, LINE 
 
 
 //Ignoring in the pv for now.
-int Search::quiesce(Board * board, int alpha, int beta){
+int Search::quiesce(Board * board, int alpha, int beta, int ply){
 	//if(board->isOwnKingInCheck()){
 	//	return alphabetaHelper(board,alpha,beta,1);
 	//}
-	int curEval = Eval::evaluate(board);
+	int curEval = Eval::evaluate(board,ply);
 	if(curEval >= beta){
 		return beta;
 	}
@@ -430,7 +444,7 @@ int Search::quiesce(Board * board, int alpha, int beta){
 		}
 		
 		board->makeMove(moves[i].move);
-		int score = -quiesce(board, -beta, -alpha);
+		int score = -quiesce(board, -beta, -alpha, ply+1);
 		board->undoMove();
 		if(score >= beta){
 			return beta;

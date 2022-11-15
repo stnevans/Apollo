@@ -21,7 +21,7 @@ namespace TT{
 	void clear();
 	void setSize(long long kb);
 	tt_entry * probe(U64 key);
-	void save(U64 key, int eval, U8 flags, Move bestMove, U8 depth); 
+	void save(U64 key, int eval, U8 flags, Move bestMove, U8 depth, U8 ply); 
 	void nextGeneration();
 }
 #endif
