@@ -157,8 +157,9 @@ Move Search::iterativeDeepening(Board * board){
 		}
 	}
 	int eval;
+	nodeCount = 0; //moving nodeCount outside loop so it doesn't get reset each deepening (fixes false nps)
 	for(int depth = 1; depth < MAX_DEPTH; depth++){
-		nodeCount = 0;optimalMoveOrder=0;badMoveOrder=0;
+		optimalMoveOrder=0;badMoveOrder=0;
 		LINE pvLine;
 		startDepth=depth;
 		currentlyFollowingPv = true;
@@ -184,21 +185,19 @@ Move Search::iterativeDeepening(Board * board){
 		}
 
 		//Print info about the search we just did
-		//Not really the true nps.
+		char pvbuffer[4096]; //We'll never realistically need more than this
+		char* bufferpointer = &pvbuffer[0];
+		for(int i = 0; i < pvLine.cmove; i++){
+			bufferpointer += UCI::appendMoveString(pvLine.argmove[i],bufferpointer);
+		}
 		if(mateIn(score) != 0){
-			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv", depth, mateIn(score),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv%s\n", depth, mateIn(score),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000), pvbuffer);
 		}else{
 			if(!board->isCheckmate()){
-				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000));
+				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv%s\n", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000), pvbuffer);
 			}
 		}
-		
-		char buffer[100];
-		
-		for(int i = 0; i < pvLine.cmove; i++){
-			printf(" %s",UCI::getMoveString(pvLine.argmove[i],buffer));
-		}
-		printf("\n");
+		fflush(stdout);
 		if(cfg->depth!=0){
 			if(cfg->depth <= depth){
 				return bestMove;
@@ -230,12 +229,14 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 	tt_entry* entry = TT::probe(currentBoard->zobrist);
 
 	if(board->isRepetition() && entry->hash==currentBoard->zobrist && entry->depth >= depth){//Note this is buggy, it should only check if there's a repetition since the original move number.
-		if(currentlyFollowingPv){
-			pline->argmove[0] = entry->bestMove;
-			//TODO: line is not properly initialized here
-			memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
-			pline->cmove = line.cmove + 1;
-		}
+		//if(currentlyFollowingPv){
+			//TODO: figure out how to get repeating repetitions into the pv
+			//This method as written adds illegal moves to the end of pv occasionally
+			//pline->argmove[0] = entry->bestMove;
+			//memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
+			//pline->cmove = line.cmove + 1;
+			pline->cmove = 0;
+		//}
 		return 0;
 	}
 	
@@ -250,6 +251,7 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 	U8 moveCount = getAllLegalMoves(board,moves);
 	if(moveCount == 0){
 		currentlyFollowingPv=false;
+		pline->cmove = 0;
 		score = Eval::noMovesEvaluate(board,ply);
 		return score;
 	}
@@ -295,8 +297,11 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 		alphabetaHelper(board,alpha,beta,4,ply,&useless);
 	}
 
-	//Considering the engine has multiple recorded instances of running out of time, I'm choosing to be more aggressive here (was 3000 prior)
-	if((nodeCount < 7500) && get_wall_time() >= endTime){
+	//Removing (nodeCount < 3000 or 7500) (functionally nodeCount < INF now) to be more aggressive on timeouts
+	//nodeCount also does not measure the same things it did earlier
+	//What was happening previously was the engine would often be over the nodeCount,
+	//and was therefore forced to search the entire remaining depth instead of quiting out.
+	if(get_wall_time() >= endTime){
 		return INT_MIN;
 	}
 	int curEval = Eval::evaluate(board,ply);

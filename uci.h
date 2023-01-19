@@ -13,6 +13,7 @@ namespace UCI{
 	void perft(Board * board, std::istringstream * parser);
 	int perft(Board *b, int depth);
 	char* getMoveString(Move m, char* ret);
+	int appendMoveString(Move m, char* ret);
 	Move toMove(Board * board, std::string move);
 	void setPosition(Board * b, BoardInfo* info, std::istringstream* parser);
 	bool loop();
