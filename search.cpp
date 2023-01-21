@@ -100,8 +100,11 @@ void Search::calculateMovetime(Board* b){
 			expectedMoves = 220;
 		}else{
 			expectedMoves = moveNum + 20; //Prevents ply 320 from being an absolute end-all
-		}	
-		int movesToGo = expectedMoves-moveNum;
+		}
+		//The divide by 2 is a rough estimate of the growth factor per depth, giving that
+		//time management does not allow the search to finish a depth it may have recently
+		//starting, I compensate by providing an extra amount of time here.
+		int movesToGo = (expectedMoves-moveNum)/2;
 		config->movetime = toMoveTime/movesToGo;
 	}
 	cfg->endTime = get_wall_time()+((cfg->movetime)/1000.0);
@@ -229,14 +232,15 @@ int Search::alphabetaHelper(Board * board, int alpha, int beta, int depth, int p
 	tt_entry* entry = TT::probe(currentBoard->zobrist);
 
 	if(board->isRepetition() && entry->hash==currentBoard->zobrist && entry->depth >= depth){//Note this is buggy, it should only check if there's a repetition since the original move number.
-		//if(currentlyFollowingPv){
-			//TODO: figure out how to get repeating repetitions into the pv
-			//This method as written adds illegal moves to the end of pv occasionally
-			//pline->argmove[0] = entry->bestMove;
+		if(currentlyFollowingPv){
+			//TODO: figure out how to get the rest of the move loop into the pv
 			//memcpy(pline->argmove + 1, line.argmove, line.cmove * sizeof(Move));
 			//pline->cmove = line.cmove + 1;
+			pline->argmove[0] = entry->bestMove;
+			pline->cmove = 1;
+		}else{
 			pline->cmove = 0;
-		//}
+		}
 		return 0;
 	}
 	

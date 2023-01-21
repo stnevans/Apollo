@@ -780,7 +780,7 @@ void Board::makeMove(Move move){
 							break;
 						case ROOK:
 							boardInfo->BlackRookBB|=getSquare[moveDest];
-							newInfo->zobrist^=getSquareKey(false,moveDest,QUEEN);
+							newInfo->zobrist^=getSquareKey(false,moveDest,ROOK);
 							break;
 						case KNIGHT:
 							boardInfo->BlackKnightBB|=getSquare[moveDest];
