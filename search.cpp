@@ -84,26 +84,23 @@ void Search::calculateMovetime(Board* b){
 			inc = config->binc;
 		}
 		int expectedMoves = 0;
-		if(moveNum < 10){
-			expectedMoves=60;
-		}else if(moveNum < 30){
-			expectedMoves = 68;
-		}else if(moveNum < 40){
-			expectedMoves=75;
-		}else if(moveNum < 50){
+		if(moveNum <= 10){
+			expectedMoves = 50;
+		}else if(moveNum <= 30){
+			expectedMoves = 60;
+		}else if(moveNum <= 40){
+			expectedMoves = 70;
+		}else if(moveNum <= 50){
 			expectedMoves = 80;
-		}else if(moveNum < 70){
+		}else if(moveNum <= 70){
 			expectedMoves = 100;
-		}else if(moveNum < 100){
+		}else if(moveNum <= 100){
 			expectedMoves = 120;
-		}else if(moveNum < 200){
-			expectedMoves = 220;
 		}else{
-			expectedMoves = moveNum + 20; //Prevents ply 320 from being an absolute end-all
+			expectedMoves = moveNum + 40;
 		}
-		//The divide by 2 is a rough estimate of the growth factor per depth, giving that
-		//time management does not allow the search to finish a depth it may have recently
-		//starting, I compensate by providing an extra amount of time here.
+
+		//CORRECTION: The division by 2 here converts plies into moves
 		int movesToGo = (expectedMoves-moveNum)/2;
 		config->movetime = toMoveTime/movesToGo;
 	}
@@ -150,6 +147,7 @@ Move Search::iterativeDeepening(Board * board){
 	endTime = cfg->endTime;
 	Move bestMove=-1;
 	double startTime = get_wall_time();
+	double totalUsedTime = 0;
 	
 	//I wonder what it would be like to know c++ and use efficient techniques rather than this?
 	for(int i = 0; i < 64; i++){
@@ -180,13 +178,15 @@ Move Search::iterativeDeepening(Board * board){
 			eval = newEval;
 		}else{
 			eval = alphabetaHelper(board,INT_MIN+500,INT_MAX-500,depth,0,&pvLine);
+			
 		}
-
+		
 		bestMove = (pvLine.cmove > 0) ? pvLine.argmove[0] : TT::probe(board->currentBoard()->zobrist)->bestMove;
 		if(get_wall_time() >= endTime){
 			return bestMove;
 		}
 
+		totalUsedTime = get_wall_time() - startTime;
 		//Print info about the search we just did
 		char pvbuffer[4096]; //We'll never realistically need more than this
 		char* bufferpointer = &pvbuffer[0];
@@ -194,10 +194,10 @@ Move Search::iterativeDeepening(Board * board){
 			bufferpointer += UCI::appendMoveString(pvLine.argmove[i],bufferpointer);
 		}
 		if(mateIn(score) != 0){
-			printf("info depth %i score mate %i nodes %llu nps %lu time %i pv%s\n", depth, mateIn(score),nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000), pvbuffer);
+			printf("info depth %i score mate %i nodes %llu nps %llu time %u pv%s\n", depth, mateIn(score),nodeCount, (U64) (nodeCount/totalUsedTime),(U32) ((totalUsedTime)*1000), pvbuffer);
 		}else{
 			if(!board->isCheckmate()){
-				printf("info depth %i score cp %i nodes %llu nps %lu time %i pv%s\n", depth, score,nodeCount, (int) (nodeCount/(get_wall_time() - startTime)),(int) ((get_wall_time() - startTime)*1000), pvbuffer);
+				printf("info depth %i score cp %i nodes %llu nps %llu time %u pv%s\n", depth, score,nodeCount, (U64) (nodeCount/totalUsedTime),(U32) ((totalUsedTime)*1000), pvbuffer);
 			}
 		}
 		fflush(stdout);
@@ -205,6 +205,11 @@ Move Search::iterativeDeepening(Board * board){
 			if(cfg->depth <= depth){
 				return bestMove;
 			}
+		}
+		
+		//If there is not enough time to go far into the next depth, save that time for later.
+		if(totalUsedTime * 1.6 >= endTime - startTime){
+			return bestMove;
 		}
 		
 		lastPv = pvLine;
