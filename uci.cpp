@@ -65,33 +65,58 @@ double get_cpu_time(){
 char* UCI::getMoveString(Move m, char* ret){
 	char from[3], to[3];
 	char* arr = getAlgebraicPos(from_sq(m));
-	from[0] = arr[0];from[1]=arr[1];from[2]=arr[2];from[3]=arr[3];
-	
+	from[0]=arr[0];from[1]=arr[1];from[2]=arr[2];
 	arr = getAlgebraicPos(to_sq(m));
-
-	to[0] = arr[0];to[1]=arr[1];to[2]=arr[2];to[3]=arr[3];
-	if(promotion_type(m)!=PAWN && promotion_type(m) != KING){
-		switch(promotion_type(m)){
-			case KNIGHT:
-				snprintf(ret,10,"%s%sn",from,to);
-				break;
-			case QUEEN:
-				snprintf(ret,10,"%s%sq",from,to);
-				break;
-			case ROOK:
-				snprintf(ret,10,"%s%sr",from,to);
-				break;
-			case BISHOP:
-				snprintf(ret,10,"%s%sb",from,to);
-				break;
-			default:
-				snprintf(ret,10,"%s%su",from,to);
-				break;
-			}
-	}else{
-		snprintf(ret,10,"%s%s",from,to);
+	to[0]=arr[0];to[1]=arr[1];to[2]=arr[2];
+	
+	switch(promotion_type(m)){
+		case QUEEN:
+			snprintf(ret,10,"%s%sq",from,to);
+			break;
+		case KNIGHT:
+			snprintf(ret,10,"%s%sn",from,to);
+			break;
+		case ROOK:
+			snprintf(ret,10,"%s%sr",from,to);
+			break;
+		case BISHOP:
+			snprintf(ret,10,"%s%sb",from,to);
+			break;
+		case PAWN:
+		case KING:
+			snprintf(ret,10,"%s%s",from,to);
+			break;
+		default:
+			snprintf(ret,10,"%s%su",from,to);
+			break;
 	}
 	return ret;
+}
+int UCI::appendMoveString(Move m, char* ret){
+	//Similar to UCI::getMoveString, except it adds a space to ret
+	//To be used with a char* to create a move list
+	//Returns number of appended characters
+	char from[3], to[3];
+	char* arr = getAlgebraicPos(from_sq(m));
+	from[0]=arr[0];from[1]=arr[1];from[2]=arr[2];
+	arr = getAlgebraicPos(to_sq(m));
+	to[0]=arr[0];to[1]=arr[1];to[2]=arr[2];
+	
+	switch(promotion_type(m)){
+		case QUEEN:
+			return snprintf(ret,10," %s%sq",from,to);
+		case KNIGHT:
+			return snprintf(ret,10," %s%sn",from,to);
+		case ROOK:
+			return snprintf(ret,10," %s%sr",from,to);
+		case BISHOP:
+			return snprintf(ret,10," %s%sb",from,to);
+		case PAWN:
+		case KING:
+			return snprintf(ret,10," %s%s",from,to);
+		default:
+			return snprintf(ret,10," %s%su",from,to);
+	}
 }
 Move UCI::toMove(Board * board, std::string move){
 	//printf("%s\n", move.c_str());
@@ -244,7 +269,7 @@ bool UCI::loop(){
 		}
 		if(token == "uci"){
 			std::cout << "id name Apollo Release 1.2.1\n";
-			std::cout << "id author Stuart Nevans Locke\n\n";
+			std::cout << "id author Stuart Nevans Locke\n";
 			printUciOptions();
 			std::cout << "uciok" << std::endl;
 		}else if(token == "ucinewgame"){
